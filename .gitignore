@@ -1,0 +1,10 @@
+/node_modules
+/.vscode
+/*.sh
+/*.bat
+/backup
+/data
+/store
+/storage
+/*.zip
+package-lock.json

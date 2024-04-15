@@ -1,0 +1,20 @@
+{
+    "name": "edm",
+    "description": "**EDM (Entity Data Model)** - клиент серверная библиотека, предназначенная для разработки клиент серверных приложений с трехзвенной архитектурой. EDM подойдет Вам если:\r - используется **sql** база данных (postgre)\r - движком сервера является **Node.js** \r - клиентом - обычный броузер (CHROME, YANDEX и т.д.).",
+    "version": "1.0.0",
+    "main": "index.js",
+    "directories": {
+        "doc": "docs"
+    },
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "pg": "^8.11.3",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+}
