@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: utils.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: utils.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const helpers = require('./helpers');
+const path = require('path');
+
+/**
+ * Контроллер данных. Используется с одной строны как поставщик данных на клиент, 
+ * с другой как базовый класс для всех специальных контроллеров данных. 
+ * 
+ * Контроллер данных умеет выполнять запросы к базе данных по имени класса и переданным параметрам. 
+ * Ответственность за выделение имени класса и форирование параметров лежит на роудере данных из
+ * которого предполагается вызывать контроллер. Функциональность контроллера по начитке данных ограничевается
+ * возможностями автоматической генерации EDM. Если этой функциональности не хватает , то можно создать 
+ * новый класс контроллера, используя в качестве прототипа DataController
+ */
+class DataController {
+
+    /**
+     * Создает новый экземпляр класса DataController. 
+     * @param {string} name имя клааса модели EDM
+     * @param {object} req запрос (см express)
+     * @param {object} res ответ
+     */
+    constructor(name, req, res) {
+        const edm = require('./edm');
+        this.edmData = edm.getEDMData(req.user);
+        this.params = helpers.prepareParams(req);
+        this.baseName = path.basename(name, '.data');
+    }
+
+    /**
+     * Подготоавливает данные для передачи на клиент
+     * @param {array|object} data 
+     * @returns {object}
+     */
+    prepareData(data) {
+        return this.edmData.prepareData(data, this.params);
+        //         if (params.paginator) {
+        //             result.total_count = 0;
+        //             //if (data &amp;&amp; data.length > 0) result.total_count = data[0]._total_count || data.length || 0;
+        //             if (data &amp;&amp; data.length > 0 &amp;&amp; data[0] &amp;&amp; data[0]._total_count) result.total_count = data[0]._total_count;
+        //             result.pos = Number.parseInt(params.start || "0");
+        //         }
+        //         else if (params.datafetch || params.repeat) {
+        //             result.pos = Number.parseInt(params.start || "0");
+        //         }
+        //         if (typeof params._total != 'undefined') result.total = params._total;
+        //         if (typeof params._progress != 'undefined') result.progress = params._progress;
+    }
+    /**
+     * Освобождает все занятые ресурсы
+     */
+    free() {
+        if (this.edmData) this.edmData.free();
+    }
+
+
+    /**
+     * Проверяет разрешение для вызова метода(команды) контроллеры.
+     *
+     * @param {*} method  имя метода
+     * @returns {*}
+     */
+    hasMethod(method) {
+        return ['run', 'save', 'create', 'update', 'delete'].includes(method);
+    }
+
+    async getConnection(mname, name, accessType) {
+        return await this.edmData.getConnection(mname, name, accessType);
+    }
+
+    async run() {
+        if (this.baseName &amp;&amp; this.edmData.classes[this.baseName]) {
+            let connection = await this.getConnection(undefined, this.baseName, 'R');
+            let data = await connection.selectObj(this.baseName, undefined, this.params);
+            await connection.addRef();
+            return data;
+        }
+        throw new Error(`Имя класса не задано или задано неправильно (${this.baseName})`);
+    }
+    async save() {
+        let updates = this.params?.updates;
+        if (updates &amp;&amp; updates.length) {
+            let connection = await this.getConnection(undefined, updates[0]._type, 'W');
+            let data = await connection.saveData(updates);
+            await connection.addRef();
+            return data;
+        }
+    }
+    async create() {
+        let connection = await this.getConnection(undefined, this.baseName, 'W');
+        let id = await connection.nextId(this.baseName);
+        let obj = this.edmData.newObj(this.baseName, { id: id });
+        return [obj];
+    }
+    async delete() {
+        let connection = await this.getConnection(undefined, this.baseName, 'W');
+        let obj = undefined;
+        let id = this.params.id;
+        obj = await connection.deleteObj(this.baseName, { id: id });
+        return [obj];
+    }
+
+}
+/**
+ * Дополнительные классы
+ * @module utils
+ */
+module.exports = {
+    /**
+     * Класс контроллер данных
+     * @type DataController
+     */
+    DataController: DataController
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-edm.html">edm</a></li><li><a href="module-model.html">model</a></li><li><a href="module-proto.html">proto</a></li><li><a href="module-utils.html">utils</a></li></ul><h3>Namespaces</h3><ul><li><a href="modelMethods.html">modelMethods</a></li></ul><h3>Classes</h3><ul><li><a href="ClientHelpers.html">ClientHelpers</a></li><li><a href="DataController.html">DataController</a></li><li><a href="EDMData.html">EDMData</a></li><li><a href="EDMObj.html">EDMObj</a></li><li><a href="SQLConnection.html">SQLConnection</a></li><li><a href="ServerHelpers.html">ServerHelpers</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Apr 09 2024 15:10:43 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

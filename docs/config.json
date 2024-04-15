@@ -1,0 +1,21 @@
+{
+    "source": {
+        "include": [
+            "readme.md",
+            "server/edm.js",
+            "server/model.js",
+            "server/helpers.js",
+            "server/client.js",
+            "server/utils.js",
+            "server/db/proto.js"
+        ]
+    },
+    "opts": {
+        "encoding": "utf8",
+        "destination": "./docs/",
+        "recurse": true
+    },
+    "plugins": [
+        "plugins/markdown"
+    ]
+}

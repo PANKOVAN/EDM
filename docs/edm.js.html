@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: edm.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: edm.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>'use strict'
+
+const utils = require('./utils');
+const helpers = require('./helpers');
+const client = require('./client');
+const model = require('./model');
+const edm = {
+    models: model.models,
+    classes: model.classes,
+    cfg: model.cfg,
+    helpers: helpers,
+    utils: utils
+}
+
+
+/**
+ * Класс EDMObj является прототипом всех объектом модели данных EDM.
+ */
+class EDMObj {
+
+    /**
+     * Класс объекта
+     *
+     * @type {string}
+     */
+    _type = undefined;
+
+
+    /**
+     * Описатель класса из модели
+     *
+     * @type {object}
+     */
+    _def_ = undefined;
+
+
+    /**
+     * Владелец. EDMData в которой был создан EDMObj
+     *
+     * @type {EDMData}
+     */
+    _edm_ = undefined;
+
+
+    /**
+     * значения свойст объекта
+     *
+     * @type {object}
+     */
+    _values_ = undefined;
+
+
+
+    /**
+     * Для всех EDMObj возвращает true
+     *
+     * @readonly
+     * @type {boolean}
+     */
+    get isEDMObj() {
+        return true;
+    }
+
+    _init(_def_, _edm_, values) {
+        this._type = _def_._name;
+        this._def_ = _def_;
+        this._edm_ = _edm_;
+        this._values_ = {};
+        this.setValues(values);
+    }
+
+    _getDefault(name) {
+        let fdef = this._def_._childs[name];
+        return fdef._default || fdef._typedefault;
+    }
+    _getValue(name) {
+        let v = this._values_[name];
+        if (typeof (v) == 'undefined' || v == null) return this._getDefault(name);
+        return v;
+    }
+    _getJsonValue(name) {
+        let value = this._getValue(name);
+        if (typeof value == 'string') {
+            try {
+                value = JSON.parse(value);
+                this._setValue(name, value);
+            }
+            catch {
+            }
+        }
+        return value;
+    }
+    _setValue(name, value) {
+        let t = this._def_._childs[name]._type;
+        if (t == 'date' || t == 'datetime') {
+            if (typeof value == 'string') {
+                value = Date.parse(value);
+            }
+            if (typeof value == 'number') {
+                let d = new Date();
+                d.setTime(value);
+                value = d;
+            }
+        }
+        else if (t == 'int' || t == 'long' || t == 'short' || t == 'byte') {
+            if (typeof value == 'string') {
+                value = parseInt(value);
+            }
+        }
+        else if (t == 'float' || t == 'decimal' || t == 'money') {
+            if (typeof value == 'string') {
+                value = parseFloat(value);
+            }
+        }
+        else if (t == 'bool') {
+            if (typeof value == 'string') value = (value == '1' || value.toLowerCase() == 'true');
+            else value = !!(value ?? false);
+        }
+        if (this._edm_) this._edm_.addUpdates(this, name, value);
+        this._values_[name] = value;
+    }
+    _setJsonValue(name, value) {
+        this._setValue(name, value);
+    }
+    _getRefValue(name, rname, type, mtype) {
+        let id = this._values_[name];
+        if (mtype == 'cfg') return this._edm_.getObj(type, id);
+        else return this._edm_.getObj(type, id);
+    }
+    _getRefId(name, rname, type, mtype) {
+        return this._values_[name];
+    }
+    _getObjValue(type, id) {
+        return this._edm_.getObj(type, id);
+    }
+    _setRefValue(name, rname, type, mtype, value) {
+        if (value === undefined || value === null) {
+            delete this._values_[name];
+        }
+        else if (typeof value == 'object') {
+
+            if (mtype == 'cfg') {
+                if (!this._edm_.cfg[type]) this._edm_.cfg[type] = {};
+                this._edm_.cfg[type][value.id] = this._edm_.this._edm_.newObj(type, value, true);
+            }
+            else {
+                this._edm_.newObj(type, value, false);
+            }
+            this._setValue(name, value.id);
+        }
+        else {
+            this._setValue(name, value);
+        }
+    }
+    _setRefId(name, rname, type, mtype, value) {
+        if (value === undefined || value === null) {
+            this._setValue(name, undefined);
+        }
+        else {
+            this._setValue(name, value);
+        }
+    }
+    _getRefListValue(name, rname, type, mtype) {
+        let list = [];
+        let idList = this._values_[name];
+        if (idList) {
+            if (typeof idList == 'string') idList = idList.split(',');
+            if (Array.isArray(idList)) {
+                idList.forEach(id => {
+                    if (mtype == 'cfg') list.push(this._edm_.getObj(type, id))
+                    else list.push(this._edm_.getObj(type, id))
+                });
+            }
+        }
+        return list;
+    }
+    _setRefListValue(name, rname, type, mtype, value) {
+        let idList = [];
+        if (Array.isArray(value)) {
+            for (let o of value) {
+                // Добавить в словарь объект на который ссылка
+                if (o != undefined &amp;&amp; o != null) {
+                    if (typeof o == 'object' &amp;&amp; o != null &amp;&amp; !o.isEDMObj) {
+                        if (mtype == 'cfg') {
+                            if (!this._edm_.cfg[type]) this._edm_.cfg[type] = {};
+                            this._edm_.cfg[type][id] = this._edm_.newObj(type, o, true);
+                        }
+                        else {
+                            this._edm_.newObj(type, o, false);
+                        }
+                    }
+                    idList.push(o.id || o);
+                }
+            };
+        }
+        else if (typeof value == 'string') {
+            value.split(',').forEach(id => {
+                if (id != "") idList.push(id);
+            });
+        }
+        else if (typeof value == 'object') {
+            for (let id in value) {
+                // Добавить в словарь объект на который ссылка
+                if (typeof value[id] == 'object') {
+                    value[id].id = id;
+                    if (mtype == 'cfg') {
+                        if (!this._edm_.cfg[type]) this._edm_.cfg[type] = {};
+                        this._edm_.cfg[type][id] = this._edm_.newObj(type, value[id], true);
+                    }
+                    else {
+                        this._edm_.newObj(type, value[id], false);
+                    }
+                }
+                idList.push(value[id].id || id);
+            }
+        }
+        this._setValue(name, idList);
+    }
+
+
+    /**
+     * Устанавливает значения свойст из объекта
+     *
+     * @param {object} values
+     */
+    setValues(values) {
+        if (typeof values == 'object') {
+            for (let n in values) {
+                //if (this._def_._childs[n] &amp;&amp; this._def_._childs[n]._mtype=='method' &amp;&amp; typeof values[n]=='function') {
+                //  this._values_[n] = values[n].toString();
+                //}
+                this[n] = values[n];
+                //if (this._def_._childs[n]) this[n] = values[n];
+                //else this._values_[n] = values[n];
+            }
+        }
+    }
+
+    isvalidatedef(name) {
+        if (name) {
+            let fdef = this._def_._childs[name];
+            if (fdef) {
+                if (fdef._notempty) {
+                    let v = (fdef._ptype == 'ref') ? this[name + 'Id'] : this[name];
+                    if (v == undefined || v == '' || (v == 0 &amp;&amp; fdef._type != 'string')) {
+                        return `Значение для "${fdef._label}" не задано!!!`
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Возвращает признак объект только для чтения
+     * @param {string} name 
+     * @returns {boolean}
+     */
+    isreadonly(name) {
+        return false;
+    }
+}
+/**
+ * Класс EDMData. Используется как единый шлюз для доступа к данным. Создается на время обработки
+ * клиентского запроса, предполагающего доступ к данным и возврат значений. Содержит список соединений и словарь данных,
+ * а также ссылки на список моделей, описателей классов и конфигураций.
+ */
+class EDMData {
+
+    lessUpdates = false;
+
+    hasUpdates = false;
+
+    updates = {}
+
+    undo = {}
+
+    static id = 0;
+
+    /**
+     * Создает новый экземпляр EDMData
+     * @param {*} currentUser
+     */
+    constructor(currentUser) {
+        EDMData.id++;
+        this.id = EDMData.id;
+        this.models = edm.models;
+        this.classes = edm.classes;
+        this.connections = [];
+        this.cfg = edm.cfg;
+        this.helpers = edm.helpers;
+        this.utils = edm.utils;
+
+        this.dic = {};
+
+        if (currentUser) this.user = this.newObj('user', currentUser || { id: -100 }, false, true);
+        try {
+            this.store = require('./store');
+        }
+        catch { }
+    }
+
+
+
+    /**
+     * Получает соединение с базой по имени модели или имени класса
+     * соединение содержит все методы необходимые для работы с базой
+     * @param {string} mname имя модели
+     * @param {string} name имя класса 
+     * @param {string} accessType тип доступа, если задан то, то с помощью 
+     * подсистемы разделения доступа проверяется разрешения на доступ к модели и таблице
+     * @param {object} userDbCfg конфигураци для доступа к базе, которая если задана, то перешибает настройки конфигурации
+     * @returns {SQLConnection} наследник SQLConnection
+     */
+    async getConnection(mname, name, accessType, userDbCfg) {
+        const settings = helpers.getSettings();
+        // 2022.12.09 - правил GLA. если не заданы mname и name берем соединение по умолчанию
+        let dbcfg = {};
+        if (mname || name) {
+            //name = helpers.pathName(name);
+            let model = this.getModel(mname, name);
+            if (accessType) this.testAccess(model._name, name, accessType, true);
+
+            let dbname = settings.models[model._mname] || settings.models['*'];
+            if (typeof userDbCfg == 'string') dbname = userDbCfg;
+            dbcfg = settings.db[dbname];
+            if (typeof userDbCfg == 'object') dbcfg = userDbCfg;
+        }
+        else if (userDbCfg) {
+            if (typeof userDbCfg == 'string') dbcfg = settings.db[userDbCfg] || {};
+            if (typeof userDbCfg == 'object') dbcfg = userDbCfg;
+        }
+        else {
+            let dbname = settings.models['*'];
+            dbcfg = settings.db[dbname] || {};
+        }
+        if (!dbcfg.require) throw new Error("Не задан драйвер соединения");
+        let db = require(`./db/${dbcfg.require}`)
+        let connection = await db.getConnection(this, dbcfg);
+        this.connections.push(connection);
+        //console.error('connections', connection.pool.totalCount, connection.pool.idleCount, connection.pool.waitingCount);
+        return connection;
+    }
+    /**
+     * Освобождает занятые ресуры
+     */
+    async free() {
+        for (let n in this.connections) {
+            await this.connections[n].free();
+        }
+        this.dic = {};
+        this.connections = [];
+    }
+
+    /**
+     * Получает модель данных по имени
+     * @param {any} mname имя модели или собственно модель
+     * @param {any} name имя класса (используется если mname не задана)
+     * @param {boolean} exception если true то при ошибке выдается исключение
+     * @returns {object} описатель модели
+     */
+    getModel(mname, name, exception = true) {
+        let model = null;
+        if (mname) {
+            if (typeof (mname) == 'string') model = this.models[mname];
+            else if (typeof (mname) == 'object') model = mname;
+        }
+        else {
+            let def = this.getModelDef(name, undefined, false);
+            if (def) model = this.models[def._mname];
+
+        }
+        if (!model &amp;&amp; exception)
+            throw `Модель  ${mname ? mname : 'для ' + name} не найдена`;
+        return model;
+    }
+
+    /**
+     * Получает описатель класса по имени
+     * @param {any} name имя класс или объект EDMObj или описатель модели
+     * @param {Array} mtypes
+     * @param {boolean} exception
+     * @returns {object} описатель класса
+     */
+    getModelDef(name, mtypes = ['table', 'cfg'], exception = true) {
+        let def = null;
+        if (typeof (name) == 'object') def = name._def_ || name;
+        else if (typeof (name) == 'string') def = this.classes[name];
+        if (def &amp;&amp; !mtypes.includes(def._mtype)) def = undefined;
+        if (!def &amp;&amp; exception)
+            throw new Error(`Описатель "${name}" не найден`);
+        return def;
+    }
+
+    /**
+     * Возвращает прототип объекта его классу.
+     * @param {string} name класс 
+     * @returns {EDMObj}
+     */
+    getObjProto(type) {
+        let def = this.getModelDef(type, ['table', 'cfg']);
+        if (def) return def._proto_;
+        return undefined;
+    }
+
+    /**
+     * Создает новый объект EDM по имени класса.
+     * @param {string} name наименования
+     * @param {object} values значения полей
+     * @param {boolean} lessDic без сохранения в EDMData
+     * @returns {EDMObj}
+     */
+    newObj(type, values, lessDic, lessUpdates) {
+        if (lessUpdates) this.lessUpdates = true;
+        let obj = undefined;
+        try {
+            if (lessDic == undefined) lessDic = this.lessDic;
+            let def = this.getModelDef(type, ['table', 'cfg']);
+
+            if (def) {
+                type = def._name
+                if (lessDic || values.id == undefined) {
+                    obj = {};
+                    obj.__proto__ = def._proto_;
+                    obj._init(def, this, values);
+                }
+                else {
+                    let td = this.cfg[type] || this.dic[type];
+                    if (!td) {
+                        td = {};
+                        if (def._mtype == 'cfg') this.cfg[type] = td
+                        else this.dic[type] = td;
+                    }
+                    obj = td[values.id];
+                    if (!obj) {
+                        obj = {};
+                        obj.__proto__ = def._proto_;
+                        obj._init(def, this, values);
+                        td[values.id] = obj;
+                    }
+                    else {
+                        obj.setValues(values);
+                    }
+                }
+                // Вызвать _init для полей
+                for (let n in def._childs) {
+                    //if (typeof obj._values_[n] == 'undefined') {
+                    let fdef = def._childs[n];
+                    if (fdef._mtype == 'field' &amp;&amp; typeof fdef._init != 'undefined' &amp;&amp; fdef._init != null) {
+                        if (typeof fdef._init == 'function') {
+                            let v = fdef._init.call(this, obj._values_[n]);
+                            if (typeof v != 'undefined') obj[n] = v;
+                        }
+                        else if (typeof obj._values_[n] == 'undefined') {
+                            obj._values_[n] = fdef._init;
+                        }
+                    }
+                    //}
+                }
+            }
+        }
+        finally {
+            if (lessUpdates) this.lessUpdates = false;
+        }
+        return obj;
+    }
+
+
+    /**
+     * Сохраняет объект данных в EDMData
+     * @param {EDMObj} obj объект данных
+     */
+    setObj(obj) {
+        if (obj) {
+            let d = this.dic;
+            let t = obj._type;
+            if (!d[t]) d[t] = {};
+            d[t][obj.id] = obj;
+        }
+    }
+
+
+    /**
+     * Получает объект данных из EDMData по имени класса и id
+     * @param {string} type класс объекта
+     * @param {any} id его id
+     * @returns {EDMObj}
+     */
+    getObj(type, id) {
+        let td = this.cfg[type] || this.dic[type];
+        let obj;
+        if (td) {
+            obj = td[id];
+        }
+        return obj;
+    }
+
+    /**
+     * Проверяет наличие объекта данных в EDMData
+     * @param {string} type тип объекта
+     * @param {any} id его id
+     * @returns {boolean}
+     */
+    hasObj(type, id) {
+        if (!id) return false;
+        let td = this.dic[type];
+        if (!td) return false;
+        let obj = td[id];
+        return obj &amp;&amp; typeof obj == 'object' &amp;&amp; obj._values_ &amp;&amp; !obj._values_._new;
+    }
+
+    /**
+     * Возвращает массив id объектов заданного тип, находящихся в EDMData.
+     * @param {string} name класс объекта
+     * @param {function name(obj) {
+     * @param {EDMObj} объект
+     * @returns {boolean}
+     * }} callback фильтр 
+     * @returns {array}
+     */
+    getIdList(name, callback) {
+        let result = [];
+        let td = this.cfg[name] || this.dic[name];
+        if (td) {
+            for (let id in td) {
+                if (!callback || callback(td[id])) {
+                    result.push(id);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Возвращает массив объектов заданного тип, находящихся в EDMData.
+     * @param {string} name класс объекта
+     * @param {function name(obj) {
+     * @param {EDMObj} объект
+     * @returns {boolean}
+     * }} callback фильтр 
+     * @returns {array}
+     */
+    getObjList(name, callback) {
+        let result = [];
+        let td = this.cfg[name] || this.dic[name];
+        if (td) {
+            for (let id in td) {
+                if (!callback || callback(td[id])) result.push(td[id]);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Добавляет обработчик, который вызывается после изменения поля любого EDM объекта, находящегося
+     * @param {function} func 
+     */
+    attachOnAfterUpdates(func) {
+        this._onAfterUpdates = func;
+    }
+    detachOnAfterUpdates(func) {
+        this._onAfterUpdates = undefined;
+    }
+
+    addOperation(obj, operation) {
+
+        if (this.lessUpdates || obj._def_._mtype == 'cfg') return;
+
+        let type = obj._type;
+        let id = obj.id;
+
+
+        if (!this.updates[type]) this.updates[type] = {};
+        let updates = this.updates[type][id];
+        if (!updates) this.updates[type][id] = updates = {};
+        updates._operation = operation;
+        this.hasUpdates = true;
+
+        if (this._onAfterUpdates) {
+            this._onAfterUpdates(obj, '_operation', operation);
+        }
+    }
+    addUpdates(obj, name, value) {
+
+        if (this.lessUpdates || obj._def_._mtype == 'cfg') return;
+
+        let type = obj._type;
+        let id = obj.id;
+
+        if (!this.undo[type]) this.undo[type] = {};
+        let undo = this.undo[type][id];
+        if (!undo) this.undo[type][id] = Object.assign({}, obj._values_);
+
+        if (!this.updates[type]) this.updates[type] = {};
+        let updates = this.updates[type][id];
+        if (!updates) this.updates[type][id] = updates = {};
+        updates[name] = value;
+        this.hasUpdates = true;
+
+        if (this._onAfterUpdates) {
+            this._onAfterUpdates(obj, name, value);
+        }
+    }
+    clearUpdates() {
+        this.updates = {};
+        this.undo = {};
+        this.hasUpdates = false;
+    }
+
+    getUpdates() {
+        let updates = [];
+        for (let type in this.updates) {
+            let typeUpdates = this.updates[type];
+            for (let id in typeUpdates) {
+                updates.push(Object.assign({ _type: type, id: id }, typeUpdates[id]));
+            }
+        }
+        return updates;
+    }
+
+    undoUpdates() {
+        for (let type in this.undo) {
+            let typeUndo = this.undo[type];
+            for (let id in typeUndo) {
+                let values = typeUndo[id];
+                let obj = this.getObj(type, id);
+                if (obj) obj._values_ = values;
+            }
+        }
+        this.clearUpdates();
+    }
+
+
+    /**
+     * Возвращает список всех неразрешенных ссылок в объектах EDMData
+     * @returns {object}
+     */
+    getUndefinedRef() {
+        let result = {};
+        for (let t in this.dic) {
+            let typeDic = this.dic[t];
+            for (let id in typeDic) {
+                let o = typeDic[id];
+                o._def_._refs.forEach(r => {
+                    if (r.refType == 'table') {
+                        if (r.pType == 'ref' &amp;&amp; !this.hasObj(r.objType, o._values_[r.refName])) {
+                            let l = result[r.objType];
+                            let refId = o._values_[r.refName];
+                            if (refId) {
+                                if (!l) {
+                                    l = [];
+                                    result[r.objType] = l;
+                                }
+                                if (!l.includes(refId)) l.push(refId);
+                            }
+                        }
+                        else if (r.pType == 'refList') {
+                            let list = o._values_[r.refName];
+                            if (list) {
+                                list.forEach(refId => {
+                                    if (!this.hasObj(r.objType, refId)) {
+                                        let l = result[r.objType];
+                                        if (refId) {
+                                            if (!l) {
+                                                l = [];
+                                                result[r.objType] = l;
+                                            }
+                                            if (!l.includes(refId)) l.push(refId);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        return result;
+    }
+    /**
+     * Добавляет ссылку в список неразрешенных ссылок
+     * @param {string} type - класс объекта
+     * @param {string} id - id
+     * @param {object} refs - список неразрешенных ссылок
+     */
+    addUndefinedRef(type, id, refs) {
+        if (!refs[type]) refs[type] = [];
+        let typerefs = refs[type];
+        if (!typerefs.includes(id)) typerefs.push(id);
+        return refs;
+    }
+
+    /**
+     * Подготавлвает данные для передачи на клиент.
+     * В словарь добавляются только объекты на которые имеются ссылки(вложенные) объектов data
+     * @param {array} data список объектов данных (EDMObj)
+     * @returns {obj}
+     */
+    prepareData(data, params) {
+        if (Array.isArray(data)) {
+            let _dic = {};
+            let _data = [];
+            if (data) {
+                for (let i in data) {
+                    let _obj = data[i];
+                    if (_obj) {
+                        if (_obj._type) {
+                            this._prepareDataRefs(_obj, data, _dic);
+                            _obj = this._prepareDataObj(_obj)
+                        }
+                        _data.push(_obj);
+                    }
+                }
+
+            }
+            return { data: _data, dic: _dic, parent: params.parent, total_count: data[0]?.total_count || _data.length };
+        }
+        return data;
+    }
+    _prepareDataRefs(obj, data, dic) {
+        if (obj._def_) {
+            obj._def_._refs.forEach(r => {
+                if (r.refType == 'table') {
+                    let v = obj[r.refName];// || this.getObj(r.objType, obj[r.refName]);
+                    if (Array.isArray(v)) {
+                        v.forEach(v1 => {
+                            if (v1 &amp;&amp; v1.id) {
+                                let typeDic = dic[v1._type];
+                                if (!typeDic) {
+                                    typeDic = {};
+                                    dic[v1._type] = typeDic;
+                                }
+                                if (!typeDic[v1.id] &amp;&amp; !data.includes(v1)) {
+                                    typeDic[v1.id] = this._prepareDataObj(v1);
+                                    this._prepareDataRefs(v1, data, dic)
+                                }
+                            }
+                        })
+                    }
+                    else {
+                        if (v &amp;&amp; v.id) {
+                            let typeDic = dic[v._type];
+                            if (!typeDic) {
+                                typeDic = {};
+                                dic[v._type] = typeDic;
+                            }
+                            if (!typeDic[v.id] &amp;&amp; !data.includes(v)) {
+                                typeDic[v.id] = this._prepareDataObj(v);
+                                this._prepareDataRefs(v, data, dic)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    _prepareDataObj(obj) {
+        let _obj = obj._values_ || {};
+        _obj._type = obj._type;
+        _obj.webix_kids = obj.webix_kids;
+        return _obj;
+    }
+    /**
+     * Проверка доступа
+     * @param {string} group  групповое имя ресурса 
+     * @param {string} name имя ресурса
+     * @param {string} type тип резурса
+     * @param {boolean} exception создавать исключение при неудаче
+     * @returns {boolean}
+     */
+    testAccess(group, name, type, exception) {
+        return this.user.testAccess(group, name, type, exception);
+    }
+
+
+    /**
+     * Находит в входном потоке данных(объект, массив), которые можно конвертировать в EDMObj и конвертирует их.
+     * @param {any} data 
+     * @returns {any} то что передали
+     */
+    parse(data) {
+        if (data != undefined &amp;&amp; data != null &amp;&amp; !data.isEDMObj) {
+            if (Array.isArray(data)) {
+                for (let i in data) {
+                    data[i] = this.parse(data[i]);
+                }
+            }
+            else if (typeof data == 'object') {
+                if (data._type) {
+                    data = this.newObj(data._type, data, false, true);
+                }
+                else {
+                    for (let n in data) {
+                        data[n] = this.parse(data[n]);
+                    }
+                }
+
+            }
+        }
+
+        return data;
+    }
+
+    /**
+     * Формирует прототип EDM объекта по его описателю. Прототипы объектов хранятся в свойствах _proto своих описателей
+     * и используются как прототипы соответствующих объектов данных. Прототипы содержат умолчания для всех свойств, также
+     * методы и свойства заданные в описателе.
+     * @param {object} def описатель объекта
+     * @param {object} classes список классов
+     */
+    static createProto(def, classes) {
+        if (def._mtype == 'table' || def._mtype == 'cfg') {
+            def._refs = [];
+            let props = {};
+            def._proto_ = new EDMObj();
+            EDMData._createProto(def._proto_, def, props, classes);
+            Object.defineProperties(def._proto_, props);
+        }
+    }
+    static _createProto(proto, def, props, classes) {
+        // Создаем свойства по описателям свойст
+        for (let n in def._childs) {
+            let fdef = def._childs[n];
+            if (fdef._mtype == "field" || fdef._mtype == "vfield") {
+                props[fdef._name] = {
+                    get: new Function(`return this._get${fdef._type.startsWith('json') ? 'Json' : ''}Value('${fdef._name}','${fdef._default}')`),
+                    set: new Function('val', `this._set${fdef._type.startsWith('json') ? 'Json' : ''}Value('${fdef._name}', val)`),
+                }
+                if (fdef._ptype == 'ref') {
+                    //let rname = fdef._name.substr(0, fdef._name.length - 2);
+                    let refClass = classes[fdef._type];
+                    if (refClass) {
+                        props[fdef._name] = {
+                            get: new Function(`return this._getRefValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}')`),
+                            set: new Function('val', `this._setRefValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}',val)`),
+                        }
+                        props[fdef._name + 'Id'] = {
+                            get: new Function(`return this._getRefId('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}')`),
+                            set: new Function('val', `this._setRefId('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}',val)`),
+                        }
+                        def._refs.push({ refName: fdef._name, objName: fdef._name, objType: refClass._name, refType: refClass._mtype, pType: 'ref' });
+                    } else {
+                        throw `Тип не определен. \n Объект:"${def}"\n Свойство: "${fdef._name}"\n Тип: "${fdef._type}`;
+                    }
+                }
+                else if (fdef._ptype == 'reflist') {
+                    //let rname = fdef._name.substr(0, fdef._name.length - 4);
+                    let refClass = classes[fdef._type];
+                    if (refClass) {
+                        props[fdef._name] = {
+                            get: new Function(`return this._getRefListValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}')`),
+                            set: new Function('val', `this._setRefListValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}',val)`),
+                        }
+                        def._refs.push({ refName: fdef._name, objName: fdef._name, objType: refClass._name, refType: refClass._mtype, pType: 'refList' });
+                    } else {
+                        throw `Тип ${fdef._type} не определен.`;
+                    }
+                }
+            }
+            else if (fdef._mtype == "method") {
+                proto[fdef._name] = EDMData.getFunc(fdef._func);
+            }
+            else if (fdef._mtype == "property") {
+                props[fdef._name] = {};
+                if (fdef._getter) props[fdef._name].get = EDMData.getFunc(fdef._getter);
+                if (fdef._setter) props[fdef._name].set = EDMData.getFunc(fdef._setter);
+                if (fdef._ptype == 'ref') {
+                    def._refs.push({ refName: fdef._name, objName: fdef._name, objType: null, refType: fdef._reftype, pType: 'ref' });
+                }
+            }
+        }
+    }
+    static getFunc(func) {
+        if (typeof func == 'object' &amp;&amp; func.function) return eval('(' + func.function + ')');
+        if (typeof func == "function") return func;
+        else if (typeof func == "undefined") return undefined;
+        throw '!!!!!!!!!!!!!!!!!!!!';
+        return new Function(func);
+    }
+
+}
+
+
+/**
+ * Ядро EDM
+ * @module edm
+ */
+module.exports = {
+
+    /** Класс {@link EDMObj} */
+    EDMObj: EDMObj,
+    /** Класс {@link EDMData} */
+    EDMData: EDMData,
+
+    /** список классов */
+    classes: model.classes,
+    /** список моделей */
+    models: model.models,
+    /** список конфигураций */
+    cfg: model.cfg,
+    /** модуль {@link utils} */
+    utils: utils,
+    /** модуль {@link helpers} */
+    helpers: helpers,
+    /** модуль {@link client} */
+    client: client,
+
+    /**
+     * Возвращает объект {EDMData}. 
+     *
+     * @param {*} currentUser
+     * @returns {EDMData}
+     */
+    getEDMData(currentUser) {
+        return new EDMData(currentUser);
+    },
+
+    getEDM() {
+        return `
+            ${EDMObj}
+            ${EDMData}
+            ${client}
+            edm={
+                isClient:true, 
+                EDMObj:EDMObj,
+                EDMData:EDMData,
+                helpers:ClientHelpers,
+                models:${JSON.stringify(helpers.prepareJson(model.models))},
+                classes:${JSON.stringify(helpers.prepareJson(model.classes))},
+                cfg:{},
+                getEDMData:function(currentUser) {return new EDMData(currentUser)},
+                app:${JSON.stringify(helpers.getSettings()?.app)},
+            }
+            edm.models=edm.helpers.prepareJson(edm.models);
+            edm.classes=edm.helpers.prepareClasses(edm.classes);
+            edm.cfg=edm.helpers.prepareCfg(${JSON.stringify(helpers.prepareJson(model.cfg))});
+        `;
+    },
+
+
+    /**
+     * Синхронизирует модель данных. 
+     * Модель данных и настройки должны быть начитаны.
+     */
+    initModel: async function () {
+        const settings = helpers.getSettings();
+        console.debug(`INIT MODEL START`);
+        for (let passing of [1, 2]) {
+            for (let n in this.models) {
+                let model = this.models[n];
+                try {
+                    let dbname = settings.models[model._mname] || settings.models['*'];
+                    let dbcfg = settings.db[dbname];
+                    let db = require(`./db/${dbcfg.require}`)
+                    if (db) await db.sync(model, passing);
+                }
+                catch (e) {
+                    console.error(`Ошибки при инициализации модели ${n}: ${e} \n${e.stack}`);
+                }
+            }
+        }
+
+
+        console.debug(`INIT MODEL END`);
+    },
+
+
+    // getErrorMessage(e, connection = null) {
+    //     if (typeof e == 'object' &amp;&amp; connection &amp;&amp; connection.getErrorMessage) {
+    //         e = connection.getErrorMessage(e);
+    //     }
+    //     let message = e;
+    //     if (typeof ((e || {}).message) != 'undefined') message = e.message;
+    //     return message;
+    // },
+
+    /**
+     * Сканирует папку проекта, начитывает настройки и описания модели данных и синхронизирует базу данных.
+     * @param {string} dirname 
+     */
+    sync: async function (dirname = '') {
+        // func.getSettings(dirname);
+        //  INIT EDM
+        helpers.getSettings(dirname)
+        require('./model').init(dirname);
+        this.initModel(dirname).then(() => {
+            require('./model').initTables(dirname).then(() => {
+                console.debug("READY!!!.......................................");
+            });
+        }).catch((err => {
+            console.error(err)
+        }));
+    }
+
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-edm.html">edm</a></li><li><a href="module-model.html">model</a></li><li><a href="module-proto.html">proto</a></li><li><a href="module-utils.html">utils</a></li></ul><h3>Namespaces</h3><ul><li><a href="modelMethods.html">modelMethods</a></li></ul><h3>Classes</h3><ul><li><a href="ClientHelpers.html">ClientHelpers</a></li><li><a href="DataController.html">DataController</a></li><li><a href="EDMData.html">EDMData</a></li><li><a href="EDMObj.html">EDMObj</a></li><li><a href="SQLConnection.html">SQLConnection</a></li><li><a href="ServerHelpers.html">ServerHelpers</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Apr 09 2024 15:10:43 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
