@@ -758,13 +758,21 @@ module.exports = {
 
         // Загрузить модели
         let fns = func.getPrjFiles(/\.(model|cfg)\.js$/i, dirname);
+        let excludePaths = settings.models?.excludes || [];
+        if (!Array.isArray(excludePaths)) excludePaths = [excludePaths];
         for (let fn of fns) {
-            try {
-                let body = fs.readFileSync(fn, { encoding: 'utf8' });
-                (new Function(...names, 'settings', body))(...methods, settings);
+            let exclude = false;
+            for (let excludePath of excludePaths) {
+                exclude = exclude || (fn.substring(dirname.length + 1).startsWith(excludePath));
             }
-            catch (e) {
-                console.error(`Ошибки при загрузке модели ${fn}: ${e}`);
+            if (!exclude) {
+                try {
+                    let body = fs.readFileSync(fn, { encoding: 'utf8' });
+                    (new Function(...names, 'settings', body))(...methods, settings);
+                }
+                catch (e) {
+                    console.error(`Ошибки при загрузке модели ${fn}: ${e}`);
+                }
             }
         }
 
