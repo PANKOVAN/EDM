@@ -235,6 +235,13 @@ class EDMObj {
             }
         }
     }
+    /**
+     * Возвращает значения свойств как простой объект
+     * @returns {object}
+     */
+    getValues() {
+        return this._values_ || {};
+    }
 
     isvalidatedef(name) {
         if (name) {

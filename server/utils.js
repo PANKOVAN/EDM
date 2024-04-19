@@ -91,6 +91,16 @@ class DataController {
         let obj = this.edmData.newObj(this.baseName, { id: id });
         return [obj];
     }
+    async insert() {
+        let connection = await this.getConnection(undefined, this.baseName, 'W');
+        let data = connection.insertObj(this.baseName, this.params);
+        return data;
+    }
+    async update() {
+        let connection = await this.getConnection(undefined, this.baseName, 'W');
+        let data = await connection.updateObj(this.baseName, this.params);
+        return data;
+    }
     async delete() {
         let connection = await this.getConnection(undefined, this.baseName, 'W');
         let obj = undefined;
