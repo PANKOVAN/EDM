@@ -664,13 +664,13 @@ class ServerHelpers {
      * @param {*} files - список файлов (не обязательно)
      * @returns {array}
      */
-    static getPrjFiles(mask, dirname, files) {
+    static getPrjFiles(mask, dirname, exclude, files) {
 
         // Первый уровень
         if (!files) {
             files = [];
-            this.getPrjFiles(mask, __dirname, files);
-            if (dirname) this.getPrjFiles(mask, dirname, files);
+            this.getPrjFiles(mask, __dirname, exclude, files);
+            if (dirname) this.getPrjFiles(mask, dirname, exclude, files);
             return files;
         }
         else {
@@ -688,7 +688,8 @@ class ServerHelpers {
                 .forEach(fn => {
                     if (fn.isDirectory() || fn.isSymbolicLink()) {
                         if (!fn.name.startsWith('.')) {
-                            this.getPrjFiles(mask, pathLib.join(dirname, fn.name), files);
+                            if (!exclude || !fn.name.search(exclude))
+                                this.getPrjFiles(mask, pathLib.join(dirname, fn.name), exclude, files);
                         }
                     }
                     else if (fn.isFile()) {
