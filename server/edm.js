@@ -4,6 +4,12 @@ const utils = require('./utils');
 const helpers = require('./helpers');
 const client = require('./client');
 const model = require('./model');
+
+const path = require('path');
+const fs = require('fs');
+const fsp = fs.promises;
+
+
 const edm = {
     models: model.models,
     classes: model.classes,
@@ -894,6 +900,169 @@ class EDMData {
         throw '!!!!!!!!!!!!!!!!!!!!';
         return new Function(func);
     }
+
+
+    //#region Хранилище
+
+    getStoreBasePath() {
+        let result = helpers.getSettings()?.store?.path;
+        if (!result) throw new Error('Путь к хранилищу не задан');
+        return result;
+    }
+    getStorePath(obj, ...folders) {
+        let id = obj?.id;
+        let type = obj?._type;
+        let gid = obj?.gid || obj?.id || '';
+
+        if (!id || !type) throw new Error('Парраметр obj не задан или задан неправильно');
+
+        id = id.toString(32).padStart(8, 0);
+        let result = type + '/' + id.substr(0, 2) + '/' + id.substr(2, 2) + '/' + id.substr(4, 2) + '/$' + gid.toString();
+        for (let folder of folders) result += '/' + folder;
+        return result;
+    }
+    /**
+     * Возвращает путь к папке, в которой хранятся все статьи ревизии.
+     * Изпользуется для файловой системы.
+     * Если заданы дополнительные параметры, то к пути добавляются подпапки
+     * @param {object} obj ревизия
+     */
+
+    getStoreObjPath(obj, ...folders) {
+        let result = this.getStoreBasePath() + '/' + this.getStorePath(obj, folders);
+        return result;
+        //return result.replace(/\\/g, '/').replace('/store//store', '/store').replace('/store/store', '/store');
+    }
+    /**
+     * Возвращает путь к папке, в которой хранятся все статьи ревизии.
+     * Изпользуется для url.
+     * Если заданы дополнительные параметры, то к пути добавляются подпапки.
+     * @param {object} revision ревизия
+     */
+    getStoreUrlPath(obj, ...folders) {
+        let result = 'store' + '/' + this.getStorePath(obj, folders);
+        return result;
+
+        //return '/' + result.replace(/\\/g, '/').replace(/\#/g, '%23');
+    }
+
+    /**
+     * Возвращает список файлов ревизии для заданной папки
+     * Для каждого файла устанавливает "атрибуты" - массив подстрок имени файла разбитого через точку и переведенного в нижний регистр
+     * @param {object} obj ревизия
+     */
+    async getStroreObjFileList(obj, ...folders) {
+        let objPath = this.getStoreObjPath(obj, folders);
+
+        let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
+        if (f) {
+            let files = await fsp.readdir(objPath, { withFileTypes: true });
+            files.forEach(file => {
+                file.attrs = file.name.toLowerCase().split('.');
+            });
+            return files;
+        }
+        return [];
+    }
+    /**
+     * Возвращает список файлов c полными путями (гкд) ревизии для заданной папки 
+     * Для каждого файла устанавливает "аттрибуты" - массив подстрок имени файла разбитого через точку и переведенного в нижний регистр
+     * @param {object} obj ревизия
+     */
+    async getStoreUrlFileList(obj, ...folders) {
+        let objPath = this.getStoreObjPath(obj, folders);
+        let storePath = this.getStoreUrlPath.apply(this, arguments);
+        let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
+        if (f) {
+            let files = await fsp.readdir(objPath, { withFileTypes: true });
+            files.forEach(file => {
+                file.attrs = file.name.toLowerCase().split('.');
+                file.path = storePath + '/' + file.name;
+            });
+            return files;
+        }
+        return [];
+    }
+    /**
+     * Читает заданный файл
+     * @param {object} obj ревизия
+     */
+    async readStoreFile(obj, ...folders) {
+        let objPath = this.getStoreObjPath(obj, folders);
+        let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
+        if (f) return await fsp.readFile(objPath);
+        return undefined;
+    }
+    async makeStoreFolder(dirName) {
+        await fsp.mkdir(dirName, { recursive: true });
+        let i = 0;
+        let d = new Date();
+        while (true) {
+            i = dirName.indexOf('/', i + 1);
+            if (i < 0) break;
+            let subName = dirName.substr(0, i);
+            if (subName.indexOf('$') > 0) {
+                await fsp.utimes(subName, d, d);
+            }
+        }
+        await fsp.utimes(dirName, d, d);
+    }
+    async saveStoreFile(obj, srcFileName, ...folders) {
+        let tarFileName = this.getStoreObjPath(obj, folders);
+        srcFileName = srcFileName.replace(/\\/g, '/');
+        await this.makeStoreFolder(path.dirname(tarFileName));
+        await fsp.copyFile(srcFileName, tarFileName);
+        return tarFileName;
+    }
+    async removeFolderFromStore(obj, ...folders) {
+        let tarFileName = this.getStoreObjPath(obj, folders);
+        let f = (await (fsp.access(tarFileName).then(() => true).catch(() => false)));
+        if (f) {
+            await fsp.rm(tarFileName, { recursive: true });
+        }
+        return tarFileName;
+    }
+    async removeFileFromStore(obj, ...folders) {
+        let tarFileName = this.getStoreObjPath(obj, folders);
+        let f = (await (fsp.access(tarFileName).then(() => true).catch(() => false)));
+        if (f) {
+            await fsp.unlink(tarFileName);
+        }
+        return tarFileName;
+    }
+    async copyStoryObj(sourceObj, targetObj) {
+        await this.copyStoreFolder(this.getStoreObjPath(sourceObj), this.getStoreObjPath(targetObj));
+    }
+    async copyStoreFolder(source, target, level = 0) {
+        let f = (await (fsp.access(target).then(() => true).catch(() => false)));
+        if (!f) {
+            await this.makeStoreFolder(target);
+        }
+        if (await (fsp.access(source).then(() => true).catch(() => false))) {
+            let files = await fsp.readdir(source, { withFileTypes: true });
+            for (let i in files) {
+                let file = files[i];
+                let sourceFile = path.join(source, file.name);
+                let targetFile = path.join(target, file.name);
+                if (file.isDirectory()) {
+                    if (file.name.toLowerCase() != 'import') {
+                        await this.copyStoreFolder(sourceFile, targetFile, level + 1);
+                    }
+                }
+                else {
+                    await fsp.copyFile(sourceFile, targetFile);
+                }
+            }
+        }
+    }
+    // async deleteObj(obj) {
+    //     let target = this.getStoreObjPath(obj);
+    //     let f = (await (fsp.access(target).then(() => true).catch(() => false)));
+    //     if (f) {
+    //         await fsp.rm(target, { recursive: true });
+    //     }
+    // }
+    //#endregion
 
 }
 
