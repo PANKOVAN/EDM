@@ -39,7 +39,7 @@ class ClientHelpers {
         let f = new Function("return " + func);
         return f();
     }
-    static eval(val, info = "") {
+    static eval(val) {
         try {
             return eval('(' + val + ')')
         }

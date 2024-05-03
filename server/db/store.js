@@ -3,7 +3,7 @@
  * Библиотека EDM. Хранилище.
  */
 
-const helpers = require('./helpers');
+const helpers = require('../helpers');
 const pathLib = require('path');
 const fs = require('fs');
 const fsp = fs.promises;

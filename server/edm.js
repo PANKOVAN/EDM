@@ -232,10 +232,12 @@ class EDMObj {
     setValues(values) {
         if (typeof values == 'object') {
             for (let n in values) {
-                //if (this._def_._childs[n] && this._def_._childs[n]._mtype=='method' && typeof values[n]=='function') {
-                //  this._values_[n] = values[n].toString();
-                //}
-                this[n] = values[n];
+                if (this._def_._childs[n] && this._def_._childs[n]._mtype == 'method' && typeof values[n] == 'string') {
+                    this[n] = eval('(' + values[n] + ')');
+                }
+                else {
+                    this[n] = values[n];
+                }
                 //if (this._def_._childs[n]) this[n] = values[n];
                 //else this._values_[n] = values[n];
             }
@@ -308,7 +310,7 @@ class EDMData {
 
         if (currentUser) this.user = this.newObj('user', currentUser || { id: -100 }, false, true);
         try {
-            this.store = require('./store');
+            this.store = require('./db/store');
         }
         catch { }
     }
@@ -910,15 +912,24 @@ class EDMData {
         return result;
     }
     getStorePath(obj, ...folders) {
-        let id = obj?.id;
-        let type = obj?._type;
-        let gid = obj?.gid || obj?.id || '';
+        let result;
+        if (typeof obj == 'string') {
+            if (obj.startsWith('store\\')) obj = obj.substring(6);
+            result = obj;
+        }
+        else {
+            let id = obj?.id;
+            let type = obj?._type;
+            let gid = obj?.gid || obj?.id || '';
 
-        if (!id || !type) throw new Error('Парраметр obj не задан или задан неправильно');
+            if (!id || !type) throw new Error('Парраметр obj не задан или задан неправильно');
 
-        id = id.toString(32).padStart(8, 0);
-        let result = type + '/' + id.substr(0, 2) + '/' + id.substr(2, 2) + '/' + id.substr(4, 2) + '/$' + gid.toString();
-        for (let folder of folders) result += '/' + folder;
+            id = id.toString(32).padStart(8, 0);
+            result = type + '/' + id.substr(0, 2) + '/' + id.substr(2, 2) + '/' + id.substr(4, 2) + '/$' + gid.toString();
+        }
+        for (let folder of folders) {
+            result += '/' + folder;
+        }
         return result;
     }
     /**
@@ -929,7 +940,7 @@ class EDMData {
      */
 
     getStoreObjPath(obj, ...folders) {
-        let result = this.getStoreBasePath() + '/' + this.getStorePath(obj, folders);
+        let result = this.getStoreBasePath() + '/' + this.getStorePath(obj, ...folders);
         return result;
         //return result.replace(/\\/g, '/').replace('/store//store', '/store').replace('/store/store', '/store');
     }
@@ -940,7 +951,7 @@ class EDMData {
      * @param {object} revision ревизия
      */
     getStoreUrlPath(obj, ...folders) {
-        let result = 'store' + '/' + this.getStorePath(obj, folders);
+        let result = 'store' + '/' + this.getStorePath(obj, ...folders);
         return result;
 
         //return '/' + result.replace(/\\/g, '/').replace(/\#/g, '%23');
@@ -952,7 +963,7 @@ class EDMData {
      * @param {object} obj ревизия
      */
     async getStroreObjFileList(obj, ...folders) {
-        let objPath = this.getStoreObjPath(obj, folders);
+        let objPath = this.getStoreObjPath(obj, ...folders);
 
         let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
         if (f) {
@@ -970,7 +981,7 @@ class EDMData {
      * @param {object} obj ревизия
      */
     async getStoreUrlFileList(obj, ...folders) {
-        let objPath = this.getStoreObjPath(obj, folders);
+        let objPath = this.getStoreObjPath(obj, ...folders);
         let storePath = this.getStoreUrlPath.apply(this, arguments);
         let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
         if (f) {
@@ -988,7 +999,7 @@ class EDMData {
      * @param {object} obj ревизия
      */
     async readStoreFile(obj, ...folders) {
-        let objPath = this.getStoreObjPath(obj, folders);
+        let objPath = this.getStoreObjPath(obj, ...folders);
         let f = (await (fsp.access(objPath).then(() => true).catch(() => false)));
         if (f) return await fsp.readFile(objPath);
         return undefined;
@@ -1008,14 +1019,14 @@ class EDMData {
         await fsp.utimes(dirName, d, d);
     }
     async saveStoreFile(obj, srcFileName, ...folders) {
-        let tarFileName = this.getStoreObjPath(obj, folders);
+        let tarFileName = this.getStoreObjPath(obj, ...folders);
         srcFileName = srcFileName.replace(/\\/g, '/');
         await this.makeStoreFolder(path.dirname(tarFileName));
         await fsp.copyFile(srcFileName, tarFileName);
         return tarFileName;
     }
     async removeFolderFromStore(obj, ...folders) {
-        let tarFileName = this.getStoreObjPath(obj, folders);
+        let tarFileName = this.getStoreObjPath(obj, ...folders);
         let f = (await (fsp.access(tarFileName).then(() => true).catch(() => false)));
         if (f) {
             await fsp.rm(tarFileName, { recursive: true });
@@ -1023,7 +1034,7 @@ class EDMData {
         return tarFileName;
     }
     async removeFileFromStore(obj, ...folders) {
-        let tarFileName = this.getStoreObjPath(obj, folders);
+        let tarFileName = this.getStoreObjPath(obj, ...folders);
         let f = (await (fsp.access(tarFileName).then(() => true).catch(() => false)));
         if (f) {
             await fsp.unlink(tarFileName);

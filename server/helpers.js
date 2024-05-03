@@ -284,6 +284,7 @@ class ServerHelpers {
         }
         return undefined;
     }
+
     static _prepareGetTemplate(name) {
         let p = {};
         let t = name.substring(1, name.length - 2).split('/');
@@ -303,6 +304,177 @@ class ServerHelpers {
             p.type = t[2].toUpperCase();
         }
         return p;
+    }
+    /**
+     * Преобразует JSON в XML
+     * @param {*} json
+     */
+    static prepareXML(json, cfgMode, f) {
+        let xml = '';
+        if (json) {
+            if (json.getDate) json = '';
+            if (typeof json == 'object' && json.isEDMObj && json._def_._mtype == 'cfg' && !cfgMode) json = '';
+            if (Array.isArray(json) /* && !ServerHelpers._isStringArray(json)*/) {
+                if (!f) xml += `<root>`;
+                for (let i = 0; i < json.length; i++) {
+                    let node = json[i];
+                    let nodeName = ServerHelpers.str2Xml(node._type || 'row');
+                    xml += `<${nodeName}${ServerHelpers._prepareAttr(node, cfgMode)}>${this.prepareXML(node, cfgMode, true)}</${nodeName}>`;
+                }
+                if (!f) xml += `</root>`;
+            }
+            else if (typeof json == 'object') {
+                let t1 = '';
+                if (!f) {
+                    let a = ServerHelpers._prepareAttr(json, cfgMode);
+                    t1 = ServerHelpers.str2Xml(json._type || '_');
+                    xml += `<${t1} ${a}>`;
+                }
+                let values = json;
+                if (json.isEDMObj) values = json._values_;
+        /*if (!ServerHelpers._isStringArray(values))*/ {
+                    for (let n in values) {
+                        let value = json[n];
+                        if (!(typeof value == 'object' && value.isEDMObj && value._def_._mtype == 'cfg' && !cfgMode) &&
+                            !(typeof value == 'object' && value.isEDMObj && value._def_._mtype == 'table' && !value.id)
+                        ) {
+                            let v = this.prepareXML(value, cfgMode, true);
+                            let a1 = ServerHelpers._prepareAttr(value, cfgMode);
+                            let n1 = ServerHelpers.str2Xml(n);
+                            if (v) {
+                                xml += `<${n1}${a1}>${v}</${n1}>`;
+                            }
+                            else if (a1) {
+                                xml += `<${n1}${a1}/>`;
+                            }
+                        }
+                    }
+                }
+                if (!f) xml += `</${t1}>`;
+            }
+            else {
+                xml = ServerHelpers.str2Xml(json);
+            }
+        }
+        return xml;
+    }
+    static _prepareAttr(json, cfgMode) {
+        let xml = '';
+        if (!Array.isArray(json) && typeof (json) == 'object' && !json.getDate) {
+            let values = json;
+            if (json.isEDMObj) {
+                xml += ` _type="${ServerHelpers.str2XmlAttr(json._type)}"`;
+                values = json._values_;
+                for (let n in json) {
+                    if (!n.startsWith('_')) {
+                        let v = json[n];
+                        let t = typeof v;
+                        if (v && t != 'object' && t != 'function') {
+                            values[n] = v;
+                        }
+                    }
+                }
+            }
+            for (let n in values) {
+                let v = json[n];
+                if (v) {
+                    if (ServerHelpers._isStringArray(v)) v = ServerHelpers._getStringArray(v);
+                    else if (v.getDate) v = v.toLocaleString();
+                    if (typeof v != 'object' && typeof v != 'function') {
+                        xml += ` ${n}="${ServerHelpers.str2XmlAttr(v)}"`;
+                    }
+                    else if (typeof v == 'object' && v.isEDMObj && v._def_._mtype == 'cfg' && v.id) {
+                        xml += ` ${n}="${ServerHelpers.str2XmlAttr(v.id)}"`;
+                    }
+                }
+            }
+        }
+        return xml;
+    }
+    /**
+      * заменяет спецсиволы в строке для корректного размещения в XML
+      * @param {string} str 
+      */
+    static str2Xml(str) {
+        str = (str || '').toString();
+        return str.replace(/\&/g, '&amp;')
+            .replace(/\"/g, '&quot;')
+            .replace(/\'/g, '&apos;')
+            .replace(/\</g, '&lt;')
+            .replace(/\>/g, '&gt;');
+    }
+    /**
+     * заменяет спецсиволы в строке для корректного размещения в атрибуте XML
+     * @param {string} str 
+     */
+    static str2XmlAttr(str) {
+        return ServerHelpers.str2Xml(str)
+            .replace(/\n/g, '&#xA;')
+            .replace(/\r/g, '&#xD;')
+            .replace(/\t/g, '&#x9;');
+    }
+    static _isStringArray(v) {
+        let f = Array.isArray(v);
+        if (f) v.forEach(element => {
+            let t = typeof element;
+            f = f && (t != 'object' && t != 'function') || typeof element.getDate == 'function';
+        });
+        return f;
+    }
+    static _getStringArray(v) {
+        let r = "";
+        v.forEach(element => {
+            if (r) r += ',';
+            if (element.getDate) r += element.toLocaleString();
+            else r += element.toString();
+        });
+        return r;
+    }
+
+    static prepareSimpleJson(json, level = 0, maxlevel = 1) {
+        let r;
+        if (json == null) json = undefined;
+        if (level > 100) {
+            return r;
+        }
+        if (json && json.isEDMObj && level > maxlevel) {
+            json = json.id;
+        }
+        if (Array.isArray(json)) {
+            r = [];
+            json.forEach(obj => {
+                if (typeof obj != 'function') {
+                    r.push(this.prepareSimpleJson(obj, level, maxlevel))
+                }
+            }, this);
+        }
+        else if (typeof json == 'object') {
+            r = {};
+            if (json.isEDMObj) {
+                for (let n in json._values_) {
+                    if (!(n.startsWith('_') && n.endsWith('_'))) {
+                        let obj = json[n];
+                        if (typeof obj != 'function') {
+                            r[n] = this.prepareSimpleJson(obj, level + 1, maxlevel);
+                        }
+                    }
+                }
+            }
+            {
+                for (let n in json) {
+                    if (!(n.startsWith('_') && n.endsWith('_'))) {
+                        let obj = json[n];
+                        if (typeof obj != 'function') {
+                            r[n] = this.prepareSimpleJson(obj, level + 1, maxlevel);
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            r = json;
+        }
+        return r;
     }
 
 
@@ -370,187 +542,7 @@ class ServerHelpers {
         return undefined;
     },
     */
-    /*
-     * Преобразует JSON в XML
-     * @param {*} json
-     */
-    /*
-    prepareXML: function (json, cfgMode, f) {
-        let xml = '';
-        if (json) {
-            if (json.getDate) json = '';
-            if (typeof json == 'object' && json.isEDMObj && json._def_._mtype == 'cfg' && !cfgMode) json = '';
-            if (Array.isArray(json) ) {
-                if (!f) xml += `<root>`;
-                for (let i = 0; i < json.length; i++) {
-                    let node = json[i];
-                    let nodeName = this.str2Xml(node._type || 'row');
-                    xml += `<${nodeName}${this._prepareAttr(node, cfgMode)}>${this.prepareXML(node, cfgMode, true)}</${nodeName}>`;
-                }
-                if (!f) xml += `</root>`;
-            }
-            else if (typeof json == 'object') {
-                let t1 = '';
-                if (!f) {
-                    let a = this._prepareAttr(json, cfgMode);
-                    t1 = this.str2Xml(json._type || '_');
-                    xml += `<${t1} ${a}>`;
-                }
-                let values = json;
-                if (json.isEDMObj) values = json._values_;
-         {
-                    for (let n in values) {
-                        let value = json[n];
-                        if (!(typeof value == 'object' && value.isEDMObj && value._def_._mtype == 'cfg' && !cfgMode) &&
-                            !(typeof value == 'object' && value.isEDMObj && value._def_._mtype == 'table' && !value.id)
-                        ) {
-                            let v = this.prepareXML(value, cfgMode, true);
-                            let a1 = this._prepareAttr(value, cfgMode);
-                            let n1 = this.str2Xml(n);
-                            if (v) {
-                                xml += `<${n1}${a1}>${v}</${n1}>`;
-                            }
-                            else if (a1) {
-                                xml += `<${n1}${a1}/>`;
-                            }
-                        }
-                    }
-                }
-                if (!f) xml += `</${t1}>`;
-            }
-            else {
-                xml = this.str2Xml(json);
-            }
-        }
-        return xml;
-    },
-    _prepareAttr: function (json, cfgMode) {
-        let xml = '';
-        if (!Array.isArray(json) && typeof (json) == 'object' && !json.getDate) {
-            let values = json;
-            if (json.isEDMObj) {
-                xml += ` _type="${this.str2XmlAttr(json._type)}"`;
-                values = json._values_;
-                for (let n in json) {
-                    if (!n.startsWith('_')) {
-                        let v = json[n];
-                        let t = typeof v;
-                        if (v && t != 'object' && t != 'function') {
-                            values[n] = v;
-                        }
-                    }
-                }
-            }
-            for (let n in values) {
-                let v = json[n];
-                if (v) {
-                    if (this._isStringArray(v)) v = this._getStringArray(v);
-                    else if (v.getDate) v = v.toLocaleString();
-                    if (typeof v != 'object' && typeof v != 'function') {
-                        xml += ` ${n}="${this.str2XmlAttr(v)}"`;
-                    }
-                    else if (typeof v == 'object' && v.isEDMObj && v._def_._mtype == 'cfg' && v.id) {
-                        xml += ` ${n}="${this.str2XmlAttr(v.id)}"`;
-                    }
-                }
-            }
-        }
-        return xml;
-    },
-    */
-    /*
-      * заменяет спецсиволы в строке для корректного размещения в XML
-      * @param {string} str 
-      */
-    /*
-    str2Xml: function (str) {
-        str = (str || '').toString();
-        return str.replace(/\&/g, '&amp;')
-            .replace(/\"/g, '&quot;')
-            .replace(/\'/g, '&apos;')
-            .replace(/\</g, '&lt;')
-            .replace(/\>/g, '&gt;');
-    },
-    */
-    /**
-     * заменяет спецсиволы в строке для корректного размещения в атрибуте XML
-     * @param {string} str 
-     */
-    /*
-    str2XmlAttr: function (str) {
-        return this.str2Xml(str)
-            .replace(/\n/g, '&#xA;')
-            .replace(/\r/g, '&#xD;')
-            .replace(/\t/g, '&#x9;');
-    },
-    */
-    /*
-    _isStringArray: function (v) {
-        let f = Array.isArray(v);
-        if (f) v.forEach(element => {
-            let t = typeof element;
-            f = f && (t != 'object' && t != 'function') || typeof element.getDate == 'function';
-        });
-        return f;
-    },
-    */
-    /*
-    _getStringArray: function (v) {
-        let r = "";
-        v.forEach(element => {
-            if (r) r += ',';
-            if (element.getDate) r += element.toLocaleString();
-            else r += element.toString();
-        });
-        return r;
-    },
-    */
-    /*
-    prepareSimpleJson: function (json, level = 0, maxlevel = 1) {
-        let r;
-        if (level > 100) {
-            return r;
-        }
-        if (json && json.isEDMObj && level > maxlevel) {
-            json = json.id;
-        }
-        if (Array.isArray(json)) {
-            r = [];
-            json.forEach(obj => {
-                if (typeof obj != 'function') {
-                    r.push(this.prepareSimpleJson(obj, level, maxlevel))
-                }
-            }, this);
-        }
-        else if (typeof json == 'object') {
-            r = {};
-            if (json.isEDMObj) {
-                for (let n in json._values_) {
-                    if (!(n.startsWith('_') && n.endsWith('_'))) {
-                        let obj = json[n];
-                        if (typeof obj != 'function') {
-                            r[n] = this.prepareSimpleJson(obj, level + 1, maxlevel);
-                        }
-                    }
-                }
-            }
-            {
-                for (let n in json) {
-                    if (!(n.startsWith('_') && n.endsWith('_'))) {
-                        let obj = json[n];
-                        if (typeof obj != 'function') {
-                            r[n] = this.prepareSimpleJson(obj, level + 1, maxlevel);
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            r = json;
-        }
-        return r;
-    },
-    */
+
     /*
      * Используется для фильтрации JSON уходящего на клиент. Не пропуска.тся свойст начинающиеся и заканчивающиеся символом '_'.
      * @param {string} key
