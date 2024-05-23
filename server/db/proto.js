@@ -1354,6 +1354,7 @@ class SQLConnection {
         sql = sql.replaceAll(/\s*<<>>\s*and\s+/gi, " ");
         sql = sql.replaceAll(/\s*<<>>\s*or\s+/gi, " ");
         sql = sql.replaceAll(/,\s*<<>>/gi, " ");
+        sql = sql.replaceAll(/\s*<<>>\s*/gi, " ");
         sql = sql.replaceAll(/order\s+by\s*\,/gi, "order by  ");
         sql = sql.replaceAll(/order\s+by\s*limit/gi, "  limit");
         sql = sql.replaceAll(/order\s+by\s*$/gi, "  ");
