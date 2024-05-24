@@ -310,7 +310,7 @@ class EDMData {
 
         if (currentUser) this.user = this.newObj('user', currentUser || { id: -100 }, false, true);
         try {
-            this.store = require('./db/store');
+            if (!edm?.isClient) this.store = require('./db/store');
         }
         catch { }
     }
