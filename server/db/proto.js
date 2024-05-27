@@ -1189,7 +1189,10 @@ class SQLConnection {
                 let suff = ns[1];
 
                 let def = this.edm.classes[param.table];
-                if (def) {
+                if (paramName == 'orderby') {
+                    sql += `\n, ${param.values}`;
+                }
+                else if (def) {
                     let cdef = def._childs[paramName];
                     if (cdef) {
                         if (cdef._mtype == 'order') {
