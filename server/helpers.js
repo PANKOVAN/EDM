@@ -99,66 +99,59 @@ class ServerHelpers {
      * @returns {obj}
      */
     static prepareParams(req) {
+        let result = {};
         let params = req.query || {};
         let body = req.body;
-        let cookies = req.cookies;
-        let currentUser = req.user;
+        //let cookies = req.cookies;
+        //let currentUser = req.user;
 
-        if (body) for (let n in body) {
+        for (let n in body) {
+            let v = body[n];
             try {
-                params[n] = decodeURIComponent(body[n]);
+                if (!isNaN(v) && v != '') result[n] = +v;
+                else if (v == 'true' || v == 'True') result[n] = true;
+                else if (v == 'false' || v == 'False') result[n] = false;
+                else result[n] = JSON.parse(v);
             }
-            catch {
-                params[n] = body[n];
+            catch (err) {
             }
         }
-        // if (cookies) for (let n in cookies) {
-        //     try {
-        //         let v = decodeURIComponent(cookies[n]);
-        //         v = v.replace(/^[\"|\']/g, '').replace(/[\"|\']$/g, '');
-        //         params[n] = v;
-        //     }
-        //     catch { }
-        // }
 
         for (let n in params) {
             let v = params[n];
             try {
-                if (!isNaN(v) && v != '') params[n] = +v;
-                else if (v == 'true' || v == 'True') params[n] = true;
-                else if (v == 'false' || v == 'False') params[n] = false;
-                else {
-                    let v1 = JSON.parse(v);
-                    if (typeof v1 == 'object') params[n] = v1;
-                }
+                if (!isNaN(v) && v != '') result[n] = +v;
+                else if (v == 'true' || v == 'True') result[n] = true;
+                else if (v == 'false' || v == 'False') result[n] = false;
+                else result[n] = JSON.parse(v);
             }
             catch (err) {
             }
         }
         // Разбор masterid
-        if (params.masterid) {
+        if (result.masterid) {
             let a = params.masterid.split(':');
             if (a.length == 2) {
-                params._mastertype = a[0];
-                params._masterid = a[1];
+                result._mastertype = a[0];
+                result._masterid = a[1];
             }
         }
         // Разбор parentId
-        if (params.parentId) {
-            let a = params.parentId.split(':');
+        if (result.parentId) {
+            let a = result.parentId.split(':');
             if (a.length == 2) {
-                params._parenttype = a[0];
-                params._parentid = a[1];
+                result._parenttype = a[0];
+                result._parentid = a[1];
             }
         }
 
         // files
         if (req.files) {
             for (let n in req.files) {
-                params[n] = req.files[n];
+                result[n] = req.files[n];
             }
         }
-        return params;
+        return result;
     }
     /*
      * Подготовливает json для передачи на клиент. Используется для передачи на клиент макрокоманд.
