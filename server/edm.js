@@ -510,6 +510,22 @@ class EDMData {
         return obj;
     }
 
+    getObjByAbb(type, abb, def) {
+        let td = this.cfg[type];
+        let ad = this.cfg[type + '_abb'];
+        if (!ad) {
+            ad = this.cfg[type + '_abb'] = {};
+            for (let id in td) {
+                let o = td[id];
+                if (o.abb) ad[o.abb.toUpperCase()] = o;
+            }
+        }
+        let ref = null;
+        if (ad) ref = ad[abb.toUpperCase()];
+        return ref || def;
+    }
+
+
     /**
      * Проверяет наличие объекта данных в EDMData
      * @param {string} type тип объекта
