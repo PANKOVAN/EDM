@@ -517,11 +517,16 @@ class EDMData {
             ad = this.cfg[type + '_abb'] = {};
             for (let id in td) {
                 let o = td[id];
-                if (o.abb) ad[o.abb.toUpperCase()] = o;
+                if (o.abb) {
+                    let abb = o.abb.toUpperCase();
+                    if (ad[abb]) throw new Error(`Дублирование абревиатуры "${abb}" для конфигурации "${type}"`)
+                    ad[abb] = o;
+                }
             }
         }
         let ref = null;
         if (ad) ref = ad[abb.toUpperCase()];
+        if (!ref) ref = td[abb];
         return ref || def;
     }
 

@@ -143,6 +143,9 @@ scheme('edm', 'Базовые классы', null, {}, [
         property('img', 'Возвращает путь к иконке', function () {
             return `public/mbuilder/images/${this._type}/${this.id}.png`;
         }),
+        // m.method('toString', 'Возврашает строку', function (source, clear = true) {
+        //     return `[${this.id}] ${this.name}`;
+        // }),
     ]),
     base('cfgExt', 'Объект конфигурации', 'cfgObj', null, [
         field('icon', 'Иконка', string(255)),
