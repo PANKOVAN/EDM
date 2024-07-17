@@ -418,6 +418,10 @@ class EDMData {
         return undefined;
     }
 
+    clear() {
+        this.dic = {};
+    }
+
     /**
      * Создает новый объект EDM по имени класса.
      * @param {string} name наименования
@@ -585,6 +589,16 @@ class EDMData {
             }
         }
         return result;
+    }
+    findObj(name, callback) {
+        let result = [];
+        let td = this.cfg[name] || this.dic[name];
+        if (td) {
+            for (let id in td) {
+                if (callback(td[id])) return td[id];
+            }
+        }
+        return undefined;
     }
 
     /**
@@ -1025,6 +1039,11 @@ class EDMData {
         if (f) return await fsp.readFile(objPath);
         return undefined;
     }
+    async saveStoreFile(obj, data, ...folders) {
+        let objPath = this.getStoreObjPath(obj, ...folders);
+
+        return await fsp.writeFile(objPath, data);
+    }
     async makeStoreFolder(dirName) {
         await fsp.mkdir(dirName, { recursive: true });
         let i = 0;
@@ -1039,7 +1058,7 @@ class EDMData {
         }
         await fsp.utimes(dirName, d, d);
     }
-    async saveStoreFile(obj, srcFileName, ...folders) {
+    async copyStoreFile(obj, srcFileName, ...folders) {
         let tarFileName = this.getStoreObjPath(obj, ...folders);
         srcFileName = srcFileName.replace(/\\/g, '/');
         await this.makeStoreFolder(path.dirname(tarFileName));

@@ -49,15 +49,17 @@ scheme('edm', 'Базовые классы', null, {}, [
             return result;
         }),
         method('getPropValue', 'Возвращает значения одного свойства', function (id, def) {
-            let prop;
-            if (this._edm_) prop = this._edm_.cfg['propType'][id];
-            else prop = edm.cfg.getObj('propType', id);
+            let propType;
+            if (this._edm_) propType = this._edm_.cfg['propType'][id];
+            else propType = edm.cfg.getObj('propType', id);
 
-            if (prop) {
+            if (propType) {
                 if (this.props) {
-                    let v = this.props[id];
-                    if (v !== undefined) {
-                        return prop.stringify(v);
+                    let v;
+                    if (propType.targetType == 1 || propType.targetType == 3) v = this.props[id];
+                    else if (propType.targetType == 2 || propType.targetType == 4) v = this[id.split('.').pop()];
+                    if (v !== undefined && propType.defaultValue != undefined && v != propType.defaultValue) {
+                        return propType.stringify(v);
                     }
                 }
                 return def;
