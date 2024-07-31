@@ -114,6 +114,7 @@ class ServerHelpers {
                 else result[n] = JSON.parse(v);
             }
             catch (err) {
+                result[n] = v;
             }
         }
 
@@ -126,6 +127,7 @@ class ServerHelpers {
                 else result[n] = JSON.parse(v);
             }
             catch (err) {
+                result[n] = v;
             }
         }
         // Разбор masterid
