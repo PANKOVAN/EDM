@@ -119,7 +119,7 @@ scheme('edm', 'Базовые классы', null, {}, [
             if (this.code && !this.code.startsWith('#')) return `[${this.code}] ${this.name}`;
             return `${this.name}`;
         }),
-        method('toHtml', 'Возвращает объект как HTNL', function () {
+        method('toHtml', 'Возвращает объект как HTML', function () {
             let result = ''
             if (this.code && !this.code.startsWith('#')) result = `<b>[${this.code}]</b> ${this.name}`;
             else result = `${this.name}`;

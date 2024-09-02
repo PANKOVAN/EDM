@@ -1041,7 +1041,7 @@ class EDMData {
     }
     async saveStoreFile(obj, data, ...folders) {
         let objPath = this.getStoreObjPath(obj, ...folders);
-
+        await this.makeStoreFolder(path.dirname(objPath));
         return await fsp.writeFile(objPath, data);
     }
     async makeStoreFolder(dirName) {
@@ -1106,14 +1106,6 @@ class EDMData {
             }
         }
     }
-    // async deleteObj(obj) {
-    //     let target = this.getStoreObjPath(obj);
-    //     let f = (await (fsp.access(target).then(() => true).catch(() => false)));
-    //     if (f) {
-    //         await fsp.rm(target, { recursive: true });
-    //     }
-    // }
-    //#endregion
 
 }
 
