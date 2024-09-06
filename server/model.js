@@ -177,7 +177,6 @@ class Table extends ModelObj {
  * @ignore
  */
 class Cfg extends ModelObj {
-
     /**
        * Конструктор
        * @param {string} name     наименование
@@ -676,6 +675,7 @@ const modelMethods = {
     },
 
     data: function (name, configuration) {
+        let index = 0;
         let edm = require('./edm');
         let edmData = edm.getEDMData();
         if (edmData.classes[name]?._mtype == 'cfg') {
@@ -689,6 +689,7 @@ const modelMethods = {
                 if (!this.cfg[name]) this.cfg[name] = {};
                 let curCfg = this.cfg[name];
                 for (let id in configuration) {
+                    index++;
                     let curObj = configuration[id];
                     if (!curCfg[id]) {
                         let newObj = edmData.newObj(name, curObj, true);
@@ -698,6 +699,7 @@ const modelMethods = {
                     else {
                         curCfg[id].setValues(curObj);
                     }
+                    curCfg[id].index = index;
                 }
             }
         }

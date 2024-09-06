@@ -135,6 +135,8 @@ scheme('edm', 'Базовые классы', null, {}, [
         field('abb', 'Сокращение', string(255)),
         field('name', 'Наименование', string(255), { trans: true }),
         field('rem', 'Примечания', string()),
+        field('index', 'Индекс', int),
+        field('icon', 'Иконка', string(255)),
         method('toString', 'Возвращает объект как строку', function () {
             /*if (this.abb) return `[${this.abb}] ${this.name}`;
             else*/ return this.name;
@@ -148,9 +150,9 @@ scheme('edm', 'Базовые классы', null, {}, [
         // m.method('toString', 'Возврашает строку', function (source, clear = true) {
         //     return `[${this.id}] ${this.name}`;
         // }),
-    ]),
-    base('cfgExt', 'Объект конфигурации', 'cfgObj', null, [
-        field('icon', 'Иконка', string(255)),
+        property('indexValue', 'Значение для сортировки', function () {
+            return (this.group?.index || 0) * 10000 + this.index;
+        })
     ]),
     base('cfgRole', 'Объект роль', 'cfgObj', null, [
         field('description', 'Описание', string()),
