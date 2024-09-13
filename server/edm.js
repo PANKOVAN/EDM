@@ -222,6 +222,17 @@ class EDMObj {
         }
         this._setValue(name, idList);
     }
+    _getRefListId(name, rname, type, mtype) {
+        return this._values_[name];
+    }
+    _setRefListId(name, rname, type, mtype, value) {
+        if (value === undefined || value === null) {
+            this._setValue(name, undefined);
+        }
+        else {
+            this._setValue(name, value);
+        }
+    }
 
 
     /**
@@ -432,6 +443,7 @@ class EDMData {
     newObj(type, values, lessDic, lessUpdates) {
         if (lessUpdates) this.lessUpdates = true;
         let obj = undefined;
+        values = values || {};
         try {
             if (lessDic == undefined) lessDic = this.lessDic;
             let def = this.getModelDef(type, ['table', 'cfg']);
@@ -910,6 +922,10 @@ class EDMData {
                         props[fdef._name] = {
                             get: new Function(`return this._getRefListValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}')`),
                             set: new Function('val', `this._setRefListValue('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}',val)`),
+                        }
+                        props[fdef._name + 'Id'] = {
+                            get: new Function(`return this._getRefListId('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}')`),
+                            set: new Function('val', `this._setRefListId('${fdef._name}','${fdef._name}','${refClass._name}','${refClass._mtype}',val)`),
                         }
                         def._refs.push({ refName: fdef._name, objName: fdef._name, objType: refClass._name, refType: refClass._mtype, pType: 'refList' });
                     } else {
