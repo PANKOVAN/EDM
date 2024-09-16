@@ -700,6 +700,7 @@ const modelMethods = {
                         curCfg[id].setValues(curObj);
                     }
                     curCfg[id].index = index;
+                    curCfg[id].baseobj = true;
                 }
             }
         }
@@ -731,6 +732,8 @@ module.exports = {
      * Проверяет и подготавливает описатели к работе;
      */
     init: function (dirname) {
+        const settings = func.getSettings(__dirname);
+        dirname = dirname || settings.rootDir;
         this._init(dirname, false);
         this._init(dirname, true);
     },
@@ -795,8 +798,9 @@ module.exports = {
                         let values = JSON.parse(fs.readFileSync(fn, { encoding: 'utf8' }));
                         if (values._type && values.id) {
                             let curObj = edmData.getObj(values._type, values.id);
-                            if (!curObj) edmData.newObj(values._type, values);
+                            if (!curObj) curObj = edmData.newObj(values._type, values);
                             else curObj.setValues(values);
+                            curObj.override = true;
                         }
                     }
                     catch (e) {

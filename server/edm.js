@@ -1122,6 +1122,12 @@ class EDMData {
             }
         }
     }
+    refreshModel() {
+        for (let k of Object.keys(model.cfg)) delete model.cfg[k];
+        for (let k of Object.keys(model.models)) delete model.models[k];
+        for (let k of Object.keys(model.classes)) delete model.classes[k];
+        model.init();
+    }
 
 }
 

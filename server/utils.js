@@ -108,6 +108,12 @@ class DataController {
         obj = await connection.deleteObj(this.baseName, { id: id });
         return [obj];
     }
+    incorectParams(condition, text) {
+        if (!condition) this.throwError(text || 'Параметры не заданы или заданы неправильно');
+    }
+    throwError(text) {
+        throw new Error(text);
+    }
 
 }
 /**
