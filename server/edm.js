@@ -493,6 +493,7 @@ class EDMData {
         finally {
             if (lessUpdates) this.lessUpdates = false;
         }
+        obj.newobj = true;
         return obj;
     }
 
@@ -503,10 +504,21 @@ class EDMData {
      */
     setObj(obj) {
         if (obj) {
-            let d = this.dic;
-            let t = obj._type;
-            if (!d[t]) d[t] = {};
-            d[t][obj.id] = obj;
+            let td = this.cfg[obj._type] || this.dic[obj._type];
+            if (!td) {
+                td = {};
+                this.dic[obj._type] = td;
+            }
+            td[obj.id] = obj;
+        }
+    }
+
+    removeObj(obj) {
+        if (obj) {
+            let td = this.cfg[obj._type] || this.dic[obj._type];
+            if (td) {
+                delete td[obj.id];
+            }
         }
     }
 

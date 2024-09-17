@@ -70,7 +70,7 @@ class ClientHelpers {
             for (let id in data) {
                 let values = data[id];
                 values.id = id;
-                edmData.newObj(className, values, false, true);
+                edmData.newObj(className, values, false, true).newobj = false;
             }
 
         }

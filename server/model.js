@@ -701,6 +701,8 @@ const modelMethods = {
                     }
                     curCfg[id].index = index;
                     curCfg[id].baseobj = true;
+                    curCfg[id].newobj = false;
+
                 }
             }
         }
@@ -801,6 +803,7 @@ module.exports = {
                             if (!curObj) curObj = edmData.newObj(values._type, values);
                             else curObj.setValues(values);
                             curObj.override = true;
+                            curObj.newObj = false;
                         }
                     }
                     catch (e) {
