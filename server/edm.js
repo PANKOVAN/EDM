@@ -147,7 +147,7 @@ class EDMObj {
 
             if (mtype == 'cfg') {
                 if (!this._edm_.cfg[type]) this._edm_.cfg[type] = {};
-                this._edm_.cfg[type][value.id] = this._edm_.this._edm_.newObj(type, value, true);
+                this._edm_.cfg[type][value.id] = this._edm_.newObj(type, value, true);
             }
             else {
                 this._edm_.newObj(type, value, false);
@@ -504,10 +504,12 @@ class EDMData {
      */
     setObj(obj) {
         if (obj) {
-            let td = this.cfg[obj._type] || this.dic[obj._type];
+            let def = this.getModelDef(obj._type, ['table', 'cfg']);
+            let dic = (def._mtype == 'cfg') ? this.cfg : this.dic;
+            let td = dic[obj._type];
             if (!td) {
                 td = {};
-                this.dic[obj._type] = td;
+                dic[obj._type] = td;
             }
             td[obj.id] = obj;
         }
