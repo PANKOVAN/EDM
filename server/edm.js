@@ -959,6 +959,17 @@ class EDMData {
                 }
             }
         }
+        // Проверяем наличие функций в описателях
+        for (let n in def._childs) {
+            let fdef = def._childs[n];
+            if (fdef._mtype != "method" && fdef._mtype != "property") {
+                for (let fn in fdef) {
+                    if (fdef[fn]?.function) {
+                        fdef[fn] = EDMData.getFunc(fdef[fn]);
+                    }
+                }
+            }
+        }
     }
     static getFunc(func) {
         if (typeof func == 'object' && func.function) return eval('(' + func.function + ')');
