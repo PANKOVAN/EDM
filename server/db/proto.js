@@ -1358,6 +1358,7 @@ class SQLConnection {
         sql = sql.replaceAll(/\s*<<>>\s*or\s+/gi, " ");
         sql = sql.replaceAll(/,\s*<<>>/gi, " ");
         sql = sql.replaceAll(/\s*<<>>\s*/gi, " ");
+        sql = sql.replaceAll(/\s*\(\s+\)\s*/gi, " (1=1) ");
         sql = sql.replaceAll(/order\s+by\s*\,/gi, "order by  ");
         sql = sql.replaceAll(/order\s+by\s*limit/gi, "  limit");
         sql = sql.replaceAll(/order\s+by\s*$/gi, "  ");
@@ -1537,7 +1538,9 @@ class SQLConnection {
         values.forEach(v => {
             if (v != '' && v != undefined) {
                 if (result != '') result += " or ";
-                result += `${fieldName} ${operation} $${this.addNamedParam(params, v)}`;
+                if (v.toString().toUpperCase() == 'NULL' && operation == '=') result += `${fieldName} is null`;
+                else if (v.toString().toUpperCase() == 'NULL' && operation == '!=') result += `${fieldName} is not null`;
+                else result += `${fieldName} ${operation} $${this.addNamedParam(params, v)}`;
             }
         }, this);
         if (result.trim() != '') return `(${result})`;
@@ -1579,7 +1582,9 @@ class SQLConnection {
      * @param {any} params список именованных параметров
      * @returns {string} сформированное условие
      */
-    filter_gt(paramName, fieldName, values, params) { return this._filter_operation(paramName, fieldName, values, params, '>'); }
+    filter_gt(paramName, fieldName, values, params) {
+        return this._filter_operation(paramName, fieldName, values, params, '>');
+    }
     /**
      * Фильтр lt. Формирует условия отбора для полей по условию меньше(<). 
      * Именованные параметры "накапливаются" в переданном списке именнованных параметров. 
