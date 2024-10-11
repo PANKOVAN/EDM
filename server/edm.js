@@ -293,7 +293,7 @@ class EDMObj {
  */
 class EDMData {
 
-    lessUpdates = false;
+    lessUpdates = 0;
 
     hasUpdates = false;
 
@@ -441,7 +441,7 @@ class EDMData {
      * @returns {EDMObj}
      */
     newObj(type, values, lessDic, lessUpdates) {
-        if (lessUpdates) this.lessUpdates = true;
+        if (lessUpdates) this.lessUpdates++;
         let obj = undefined;
         values = values || {};
         try {
@@ -491,7 +491,7 @@ class EDMData {
             }
         }
         finally {
-            if (lessUpdates) this.lessUpdates = false;
+            if (lessUpdates) this.lessUpdates--;
         }
         obj.newobj = true;
         return obj;
@@ -521,6 +521,7 @@ class EDMData {
             if (td) {
                 delete td[obj.id];
             }
+            this.addOperation(obj, 'delete');
         }
     }
 
@@ -640,7 +641,7 @@ class EDMData {
 
     addOperation(obj, operation) {
 
-        if (this.lessUpdates || obj._def_._mtype == 'cfg') return;
+        if (this.lessUpdates > 0 || obj._def_._mtype == 'cfg') return;
 
         let type = obj._type;
         let id = obj.id;
@@ -658,7 +659,7 @@ class EDMData {
     }
     addUpdates(obj, name, value) {
 
-        if (this.lessUpdates || obj._def_._mtype == 'cfg') return;
+        if (this.lessUpdates > 0 || obj._def_._mtype == 'cfg') return;
 
         let type = obj._type;
         let id = obj.id;
