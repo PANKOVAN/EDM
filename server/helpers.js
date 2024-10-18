@@ -1116,7 +1116,7 @@ class ServerHelpers {
             }
             return date;
         }
-        else if (date.getYear) {
+        else if (date?.getYear) {
             return date;
         }
         return undefined;

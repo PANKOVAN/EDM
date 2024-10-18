@@ -1356,11 +1356,14 @@ class SQLConnection {
         sql = sql.replaceAll(/\s+or\s*<<>>/gi, " ");
         sql = sql.replaceAll(/\s*<<>>\s*and\s+/gi, " ");
         sql = sql.replaceAll(/\s*<<>>\s*or\s+/gi, " ");
-        sql = sql.replaceAll(/,\s*<<>>/gi, " ");
+        //sql = sql.replaceAll(/,\s*<<>>/gi, " ");
         sql = sql.replaceAll(/\s*<<>>\s*/gi, " ");
         sql = sql.replaceAll(/\s*\(\s+\)\s*/gi, " (1=1) ");
+        sql = sql.replaceAll(/\,\s*\,/gi, ",  ");
         sql = sql.replaceAll(/order\s+by\s*\,/gi, "order by  ");
+        sql = sql.replaceAll(/\,\s*order by\s*\,/gi, "order by  ");
         sql = sql.replaceAll(/order\s+by\s*limit/gi, "  limit");
+        sql = sql.replaceAll(/\,\s*limit/gi, "  limit");
         sql = sql.replaceAll(/order\s+by\s*$/gi, "  ");
 
         sql = sql.replaceAll(/\s+/gmi, " ");
@@ -1397,7 +1400,7 @@ class SQLConnection {
         let result = "";
         values = SQLConnection.valuesToArray(values);
         values.forEach(v => {
-            if (v != '') {
+            if (v != '' && v != undefined) {
                 if (result != '') result += " or ";
                 result += ` cast(${fieldName} as varchar) ~* $${this.addNamedParam(params, v)}`;
             }
