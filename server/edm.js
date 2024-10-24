@@ -77,7 +77,7 @@ class EDMObj {
 
     _getDefault(name) {
         let fdef = this._def_._childs[name];
-        return fdef._default || fdef._typedefault;
+        return /*fdef._default ||*/ fdef._typedefault;
     }
     _getValue(name) {
         let v = this._values_[name];
