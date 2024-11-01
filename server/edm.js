@@ -1018,6 +1018,7 @@ class EDMData {
 
     getStoreObjPath(obj, ...folders) {
         let result = this.getStoreBasePath() + '/' + this.getStorePath(obj, ...folders);
+        if (result.startsWith('/')) result = result.replaceAll('\\', '/');
         return result;
         //return result.replace(/\\/g, '/').replace('/store//store', '/store').replace('/store/store', '/store');
     }
