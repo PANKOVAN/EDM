@@ -785,33 +785,33 @@ module.exports = {
             }
         }
         // Загрузить конфигураций настроенных из MBuilder
-        if (dataMode) {
-            let edmData = edm.getEDMData();
-            let fns = func.getPrjFiles(/\.(cfg)\.json$/i, dirname);
-            let excludePaths = settings.models?.excludes || [];
-            if (!Array.isArray(excludePaths)) excludePaths = [excludePaths];
-            for (let fn of fns) {
-                let exclude = false;
-                for (let excludePath of excludePaths) {
-                    exclude = exclude || (fn.substring(dirname.length + 1).startsWith(excludePath));
-                }
-                if (!exclude) {
-                    try {
-                        let values = JSON.parse(fs.readFileSync(fn, { encoding: 'utf8' }));
-                        if (values._type && values.id) {
-                            let curObj = edmData.getObj(values._type, values.id);
-                            if (!curObj) curObj = edmData.newObj(values._type, values);
-                            else curObj.setValues(values);
-                            curObj.override = true;
-                            curObj.newObj = false;
-                        }
-                    }
-                    catch (e) {
-                        console.error(`Ошибки при загрузке модели ${fn}: ${e}`);
-                    }
-                }
-            }
-        }
+        // if (dataMode) {
+        //     let edmData = edm.getEDMData();
+        //     let fns = func.getPrjFiles(/\.(cfg)\.json$/i, dirname);
+        //     let excludePaths = settings.models?.excludes || [];
+        //     if (!Array.isArray(excludePaths)) excludePaths = [excludePaths];
+        //     for (let fn of fns) {
+        //         let exclude = false;
+        //         for (let excludePath of excludePaths) {
+        //             exclude = exclude || (fn.substring(dirname.length + 1).startsWith(excludePath));
+        //         }
+        //         if (!exclude) {
+        //             try {
+        //                 let values = JSON.parse(fs.readFileSync(fn, { encoding: 'utf8' }));
+        //                 if (values._type && values.id) {
+        //                     let curObj = edmData.getObj(values._type, values.id);
+        //                     if (!curObj) curObj = edmData.newObj(values._type, values);
+        //                     else curObj.setValues(values);
+        //                     curObj.override = true;
+        //                     curObj.newObj = false;
+        //                 }
+        //             }
+        //             catch (e) {
+        //                 console.error(`Ошибки при загрузке модели ${fn}: ${e}`);
+        //             }
+        //         }
+        //     }
+        // }
 
 
 
