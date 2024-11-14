@@ -111,6 +111,9 @@ class SQLConnection {
      * @returns {array}
      */
     async _exec(sql, params) {
+
+        //params = helpers.prepareJson(params, this.edm)
+
         let hideTrace = this.hideTrace;
         let hideException = this.hideException;
         sql = sql[this.type] || sql;

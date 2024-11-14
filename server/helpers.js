@@ -188,7 +188,7 @@ class ServerHelpers {
                 let val = source[i];
                 if (val && typeof (val) == 'object') {
                     if (idMode && val.isEDMObj) target.push(val.id);
-                    else target.push(this.prepareJson(val, edm));
+                    else target.push(this.prepareJson(val, edm, idMode));
                 }
                 else {
                     target.push(val);
@@ -277,7 +277,7 @@ class ServerHelpers {
         else if (typeof (source == 'function')) {
             return { function: source.toString() };
         }
-        return undefined;
+        return source;
     }
 
     static _prepareGetTemplate(name) {

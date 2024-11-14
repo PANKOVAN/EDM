@@ -543,9 +543,10 @@ class EDMData {
 
     getObjByAbb(type, abb, def) {
         let td = this.cfg[type];
-        let ad = this.cfg[type + '_abb'];
+        this.abb = this.abb || {};
+        let ad = this.abb[type];
         if (!ad) {
-            ad = this.cfg[type + '_abb'] = {};
+            ad = this.abb[type] = {};
             for (let id in td) {
                 let o = td[id];
                 if (o.abb) {
