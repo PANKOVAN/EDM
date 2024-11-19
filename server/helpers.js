@@ -280,6 +280,7 @@ class ServerHelpers {
         return source;
     }
 
+
     static _prepareGetTemplate(name) {
         let p = {};
         let t = name.substring(1, name.length - 2).split('/');

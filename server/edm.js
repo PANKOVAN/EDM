@@ -345,7 +345,8 @@ class EDMData {
         if (mname || name) {
             //name = helpers.pathName(name);
             let model = this.getModel(mname, name);
-            if (accessType) this.testAccess(model._name, name, accessType, true);
+
+            this.testAccess(model._name, name, accessType, true);
 
             let dbname = settings.models[model._mname] || settings.models['*'];
             if (typeof userDbCfg == 'string') dbname = userDbCfg;
@@ -856,8 +857,36 @@ class EDMData {
      * @param {boolean} exception создавать исключение при неудаче
      * @returns {boolean}
      */
-    testAccess(group, name, type, exception) {
-        return this.user.testAccess(group, name, type, exception);
+    testAccess(token, name, accessType, exception) {
+        if (arguments.length <= 2) {
+            let params = arguments[0].split('.');
+            if (params.length == 3) return this.testAccess(params[0], params[1], params[2], arguments[1]);
+            else if (params.length == 2) return this.testAccess(params[0], undefined, params[1], arguments[1]);
+            else if (params.length == 1) return this.testAccess(params[0], undefined, undefined, arguments[1]);
+            else throw new Error(`!!! testAccess параметры заданы неправильно`);
+        }
+
+        if (!this.user) return false;
+        if (this.user.login == 'madmin') return true;
+
+        if (!accessType || ['R', 'A'].includes(accessType.toUpperCase())) accessType = 'view';
+        else if (['U', 'W'].includes(accessType.toUpperCase())) accessType = 'edit';
+
+        let result = false;
+
+        if (name) {
+            result = this.user.tokens[token + '.' + name + '.' + accessType];
+            if (result == undefined) {
+                result = this.user.tokens[token + '.' + accessType];
+            }
+            if (exception && !result) throw new Error(`Доступ запрещен!!! (${token + '.' + name + '.' + accessType})`);
+        }
+        else {
+            result = this.user.tokens[token + '.' + accessType];
+            if (exception && !result) throw new Error(`Доступ запрещен!!! (${token + '.' + accessType})`);
+        }
+
+        return !!result;
     }
 
 
