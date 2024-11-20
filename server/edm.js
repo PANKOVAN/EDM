@@ -870,7 +870,7 @@ class EDMData {
         if (!this.user) result = true;
         else if (this.user.login == 'madmin') result = true;
 
-        if (result == this.undefined) {
+        if (result == undefined) {
             while (tokens.length) {
                 result = this.user.tokens[tokens.join('.')];
                 if (result == undefined) {
