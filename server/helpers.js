@@ -156,22 +156,9 @@ class ServerHelpers {
         return result;
     }
     /*
-     * Подготовливает json для передачи на клиент. Используется для передачи на клиент макрокоманд.
-     * Обходит json и преобразует встреченные функции к объектам {function: 'function() {...}'}
-     * Кроме этого производится проверка прав(маркеров) доступа. Проверка производится если
-     * имя или значение узла соответствует одному из шаблонов:
-     *  ?имя узла/маркера/тип?
-     *  ?имя узла/тип?
-     *  ?имя узла?
-     * Ключевым признаком в данном случае явлется наличие начального и концевого символа '?'.
-     * Если маркер не задан, то он считается равным имени(имени узла), если тип достуа не задан,
-     * то он считается равны А (Application).
-     * Проверка производится функцией edm.testAccess(). Если для узла проверка прав прошла неудачно,
-     * то этот узел не формируется, если упешно, то формируеится узел с именем равным имени узла.
-     *
+     * Подготовливает json для передачи на клиент. 
      * @param {obj} json
      */
-    //TODO Следует убрать функционал наследованный от макросов
 
     /**
      * Подготавливает JSON для передачи на клиент
@@ -181,7 +168,6 @@ class ServerHelpers {
      * @returns {object}
      */
     static prepareJson(source, edm, idMode) {
-        //console.debug(source);
         if (Array.isArray(source)) {
             let target = [];
             for (let i in source) {
@@ -238,36 +224,11 @@ class ServerHelpers {
                             target[name] = { function: descriptor.value.toString() };
                         }
                         else if (descriptor.value && typeof (descriptor.value) == 'object') {
-                            if (name.startsWith('?') && name.endsWith('?')) {
-                                let p = this._prepareGetTemplate(name);
-                                let f = false;
-                                if (edm) f = edm.testAccess(undefined, p.marker, p.type, false);
-                                if (f) {
-                                    target[p.name] = this.prepareJson(descriptor.value, edm);
-                                }
-                            }
-                            else {
-                                target[name] = this.prepareJson(descriptor.value, edm);
-                            }
+                            target[name] = this.prepareJson(descriptor.value, edm);
                         }
                         else {
                             let value = descriptor.value;
-                            if (typeof (value) == 'string' && value.startsWith('?') && value.endsWith('?')) {
-                                let p = this._prepareGetTemplate(value);
-                                value = false;
-                                if (edm) value = edm.testAccess(undefined, p.marker, p.type, false);
-                            }
-                            if (name.startsWith('?') && name.endsWith('?')) {
-                                let p = this._prepareGetTemplate(name);
-                                let f = false;
-                                if (edm) f = edm.testAccess(undefined, p.marker, p.type, false);
-                                if (f) {
-                                    target[p.name] = value;
-                                }
-                            }
-                            else {
-                                target[name] = value;
-                            }
+                            target[name] = value;
                         }
                     }
                 }
