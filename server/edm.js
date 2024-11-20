@@ -340,13 +340,14 @@ class EDMData {
      */
     async getConnection(mname, name, accessType, userDbCfg) {
         const settings = helpers.getSettings();
-        // 2022.12.09 - правил GLA. если не заданы mname и name берем соединение по умолчанию
         let dbcfg = {};
         if (mname || name) {
             //name = helpers.pathName(name);
             let model = this.getModel(mname, name);
 
-            this.testAccess(model._name, name, accessType, true);
+            if (!accessType || ['R', 'A'].includes(accessType.toUpperCase())) accessType = 'view';
+            else if (['U', 'W'].includes(accessType.toUpperCase())) accessType = 'edit';
+            this.testAccess([model._name, name, accessType], true);
 
             let dbname = settings.models[model._mname] || settings.models['*'];
             if (typeof userDbCfg == 'string') dbname = userDbCfg;
@@ -857,34 +858,31 @@ class EDMData {
      * @param {boolean} exception создавать исключение при неудаче
      * @returns {boolean}
      */
-    testAccess(token, name, accessType, exception) {
-        if (arguments.length <= 2) {
-            let params = arguments[0].split('.');
-            if (params.length == 3) return this.testAccess(params[0], params[1], params[2], arguments[1]);
-            else if (params.length == 2) return this.testAccess(params[0], undefined, params[1], arguments[1]);
-            else if (params.length == 1) return this.testAccess(params[0], undefined, undefined, arguments[1]);
-            else throw new Error(`!!! testAccess параметры заданы неправильно`);
-        }
+    testAccess(tokens, exception) {
 
-        if (!this.user) return false;
-        if (this.user.login == 'madmin') return true;
+        let result = undefined;
 
-        if (!accessType || ['R', 'A'].includes(accessType.toUpperCase())) accessType = 'view';
-        else if (['U', 'W'].includes(accessType.toUpperCase())) accessType = 'edit';
+        if (!Array.isArray(tokens)) tokens = (tokens || '').split('.');
+        let stokens = tokens.join('.');
 
-        let result = false;
 
-        if (name) {
-            result = this.user.tokens[token + '.' + name + '.' + accessType];
-            if (result == undefined) {
-                result = this.user.tokens[token + '.' + accessType];
+        if (tokens.length < 2) result = false;
+        if (!this.user) result = true;
+        else if (this.user.login == 'madmin') result = true;
+
+        if (result == this.undefined) {
+            while (tokens.length) {
+                result = this.user.tokens[tokens.join('.')];
+                if (result == undefined) {
+                    tokens.splice(tokens.length - 2, 1);
+                }
+                else {
+                    break;
+                }
             }
-            if (exception && !result) throw new Error(`Доступ запрещен!!! (${token + '.' + name + '.' + accessType})`);
         }
-        else {
-            result = this.user.tokens[token + '.' + accessType];
-            if (exception && !result) throw new Error(`Доступ запрещен!!! (${token + '.' + accessType})`);
-        }
+
+        if (exception && !result) throw new Error(`Доступ запрещен!!! (${stokens})`);
 
         return !!result;
     }
