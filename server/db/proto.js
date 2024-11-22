@@ -1752,7 +1752,10 @@ class SQLConnection {
                 let idList = undefinedRefs[name];
                 if (idList && idList.length > 0) {
                     result = true;
-                    await this.selectObj(name, `select * from ${this.getTableName(name)} where id in (${this.getIdList(undefinedRefs[name], name)})`);
+                    let ids = this.getIdList(undefinedRefs[name], name);
+                    if (ids) {
+                        await this.selectObj(name, `select * from ${this.getTableName(name)} where id in (${ids})`);
+                    }
                 }
             }
         }
@@ -1762,8 +1765,8 @@ class SQLConnection {
         let s = '';
         idList.forEach(id => {
             if (s) s += ',';
-            if (typeof id == 'object') s += id.id;
-            else s += id;
+            if (typeof id == 'object') id = id.id;
+            if (id) s += id;
         });
         return s;
     }
