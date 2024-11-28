@@ -285,6 +285,34 @@ class EDMObj {
     isreadonly(name) {
         return false;
     }
+
+
+    getDefs(defs) {
+        let result = [];
+        for (let def of defs) {
+            if (typeof def == 'string') def = { name: def };
+            let _def = this._def_._childs[def.name];
+            if (_def) {
+                if (_def._mtype == 'field') {
+                    result.push({
+                        name: def.name,
+                        label: def.label || _def._label,
+                        type: def.type || _def._type,
+                        len: def.len || _def._len,
+                        ptype: def.ptype || _def._ptype,
+                    });
+                }
+            }
+        }
+        return result;
+    }
+    getPropTypes(defs) {
+        let result = [];
+        if (this.type && this.type.getPropTypes) {
+            result = this.type.getPropTypes();
+        }
+        return result;
+    }
 }
 /**
  * Класс EDMData. Используется как единый шлюз для доступа к данным. Создается на время обработки
