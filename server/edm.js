@@ -702,11 +702,12 @@ class EDMData {
         if (!this.updates[type]) this.updates[type] = {};
         let updates = this.updates[type][id];
         if (!updates) this.updates[type][id] = updates = {};
-        updates[name] = value;
-        this.hasUpdates = true;
-
-        if (this._onAfterUpdates) {
-            this._onAfterUpdates(obj, name, value);
+        if (updates[name] != value) {
+            updates[name] = value;
+            this.hasUpdates = true;
+            if (this._onAfterUpdates) {
+                this._onAfterUpdates(obj, name, value);
+            }
         }
     }
     clearUpdates() {
