@@ -813,8 +813,11 @@ class EDMData {
                 let _obj = data[i];
                 if (_obj) {
                     if (_obj._type) {
-                        this._prepareDataRefs(_obj, data, _dic);
+                        this._prepareDataRefs(_obj, /*data,*/ _dic);
                         _obj = this._prepareDataObj(_obj)
+                    }
+                    else {
+                        _obj = this._prepareObj(_obj, _dic)
                     }
                     _data.push(_obj);
                 }
@@ -827,8 +830,11 @@ class EDMData {
             let _obj = data;
             if (_obj) {
                 if (_obj._type) {
-                    this._prepareDataRefs(_obj, [_obj], _dic);
+                    this._prepareDataRefs(_obj, /*[_obj],*/ _dic);
                     _obj = this._prepareDataObj(_obj)
+                }
+                else {
+                    _obj = this._prepareObj(_obj, _dic)
                 }
                 _data = _obj;
             }
@@ -836,7 +842,7 @@ class EDMData {
         }
         return data;
     }
-    _prepareDataRefs(obj, data, dic) {
+    _prepareDataRefs(obj, /*data,*/ dic) {
         if (obj._def_) {
             obj._def_._refs.forEach(r => {
                 if (r.refType == 'table') {
@@ -849,9 +855,9 @@ class EDMData {
                                     typeDic = {};
                                     dic[v1._type] = typeDic;
                                 }
-                                if (!typeDic[v1.id] && !data.includes(v1)) {
+                                if (!typeDic[v1.id] /*&& !data.includes(v1)*/) {
                                     typeDic[v1.id] = this._prepareDataObj(v1);
-                                    this._prepareDataRefs(v1, data, dic)
+                                    this._prepareDataRefs(v1, /*data,*/ dic)
                                 }
                             }
                         })
@@ -863,9 +869,9 @@ class EDMData {
                                 typeDic = {};
                                 dic[v._type] = typeDic;
                             }
-                            if (!typeDic[v.id] && !data.includes(v)) {
+                            if (!typeDic[v.id] /*&& !data.includes(v)*/) {
                                 typeDic[v.id] = this._prepareDataObj(v);
-                                this._prepareDataRefs(v, data, dic)
+                                this._prepareDataRefs(v, /*data,*/ dic)
                             }
                         }
                     }
@@ -878,6 +884,38 @@ class EDMData {
         _obj._type = obj._type;
         _obj.webix_kids = obj.webix_kids;
         return _obj;
+    }
+    _prepareObj(obj, _dic) {
+        if (Array.isArray(obj)) {
+            let _data = [];
+            for (let _obj of obj) {
+                if (_obj) {
+                    if (_obj._type) {
+                        this._prepareDataRefs(_obj, /*data,*/ _dic);
+                        _obj = this._prepareDataObj(_obj)
+                    }
+                    else {
+                        _obj = this._prepareObj(_obj, _dic)
+                    }
+                    _data.push(_obj);
+                }
+            }
+            return _data;
+        }
+        else if (typeof obj == 'object') {
+            if (obj._type) {
+                this._prepareDataRefs(obj, /*[_obj],*/ _dic);
+                return this._prepareDataObj(obj)
+            }
+            else {
+                let _data = {};
+                for (let n in obj) {
+                    _data[n] = this._prepareObj(obj[n], _dic)
+                }
+                return _data;
+            }
+        }
+        return obj;
     }
     /**
      * Проверка доступа
