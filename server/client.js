@@ -90,6 +90,31 @@ class ClientHelpers {
         else if (obj) return preffix + obj.toString() + suffix;
         return '';
     }
+    static setEmbeddedData(str, o) {
+        try {
+            let s = '{{' + JSON.stringify(o) + '}}';
+            let i = str.indexOf('{{');
+            let j = str.lastIndexOf('}}');
+
+            if (i >= 0 && j > i) str = str.substring(0, i) + s + str.substring(j + 2)
+            else str = str + '\t' + s;
+
+            return str;
+        } catch { }
+        return '{{}}'
+    }
+    static getEmbeddedData(str) {
+        try {
+            let i = str.indexOf('{{');
+            let j = str.lastIndexOf('}}');
+
+            if (i >= 0 && j > i) str = str.substring(i + 2, j);
+            else str = '';
+
+            return JSON.parse(str);
+        } catch { }
+        return undefined
+    }
 
 }
 module.exports = ClientHelpers
