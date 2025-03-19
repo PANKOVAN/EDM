@@ -890,16 +890,16 @@ class EDMData {
         if (Array.isArray(obj)) {
             let _data = [];
             for (let _obj of obj) {
-                if (_obj) {
-                    if (_obj._type) {
-                        this._prepareDataRefs(_obj, /*data,*/ _dic);
-                        _obj = this._prepareDataObj(_obj)
-                    }
-                    else {
-                        _obj = this._prepareObj(_obj, _dic)
-                    }
-                    _data.push(_obj);
+                //if (_obj) {
+                if (_obj?._type) {
+                    this._prepareDataRefs(_obj, /*data,*/ _dic);
+                    _obj = this._prepareDataObj(_obj)
                 }
+                else {
+                    _obj = this._prepareObj(_obj, _dic)
+                }
+                _data.push(_obj);
+                //}
             }
             return _data;
         }
