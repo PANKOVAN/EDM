@@ -6,7 +6,11 @@
     "directories": {
         "doc": "docs"
     },
-    "dependencies": {},
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "pg": "^8.14.1",
+        "uuid": "^11.1.0"
+    },
     "author": "PAN",
     "license": "ISC"
 }
