@@ -290,17 +290,30 @@ class EDMObj {
     getDefs(defs) {
         let result = [];
         for (let def of defs) {
+            let obj = this;
             if (typeof def == 'string') def = { name: def };
-            let _def = this._def_._childs[def.name];
-            if (_def) {
-                if (_def._mtype == 'field') {
-                    result.push({
-                        name: def.name,
-                        label: def.label || _def._label,
-                        type: def.type || _def._type,
-                        len: def.len || _def._len,
-                        ptype: def.ptype || _def._ptype,
-                    });
+
+            let names = def.name.split('.');
+            while (names.length > 1) {
+                let name = names.shift();
+                obj = obj[name];
+            }
+            def.name = names[0];
+
+            if (obj) {
+                let _def = obj._def_._childs[def.name];
+                if (_def) {
+                    if (_def._mtype == 'field') {
+                        result.push({
+                            name: def.name,
+                            label: def.label || _def._label,
+                            type: def.type || _def._type,
+                            len: def.len || _def._len,
+                            ptype: def.ptype || _def._ptype,
+                            params: def.params,
+                            obj: obj,
+                        });
+                    }
                 }
             }
         }
