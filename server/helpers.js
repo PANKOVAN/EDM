@@ -39,9 +39,15 @@ class ServerHelpers {
                 return 0;
             })) {
                 let body = fs.readFileSync(fn, { encoding: 'utf8' });
-                (new Function('settings', body))(function (o) {
-                    this.setSettings(o);
-                }.bind(this));
+                body = body.replace('\n', '').replace('\r', '')
+                try {
+                    (new Function('settings', body))(function (o) {
+                        this.setSettings(o);
+                    }.bind(this));
+                }
+                catch (e) {
+                    console.error(`Ошибки при загрузке настроек\n${body}`);
+                }
 
             }
 
