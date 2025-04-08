@@ -311,6 +311,7 @@ class EDMObj {
                             len: def.len || _def._len,
                             ptype: def.ptype || _def._ptype,
                             params: def.params,
+                            filter: def.filter,
                             obj: obj,
                         });
                     }
