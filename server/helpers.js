@@ -39,16 +39,21 @@ class ServerHelpers {
                 return 0;
             })) {
                 let body = fs.readFileSync(fn, { encoding: 'utf8' });
-                body = body.replace('\n', '').replace('\r', '')
                 try {
                     (new Function('settings', body))(function (o) {
                         this.setSettings(o);
                     }.bind(this));
                 }
-                catch (e) {
-                    console.error(`Ошибки при загрузке настроек\n${body}`);
+                catch {
+                    try {
+                        (new Function('settings', body.replace('\n', '')))(function (o) {
+                            this.setSettings(o);
+                        }.bind(this));
+                    }
+                    catch {
+                        console.error(`Ошибки при загрузке настроек ${fn}\n${body}`);
+                    }
                 }
-
             }
 
         }
