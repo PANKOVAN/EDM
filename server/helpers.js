@@ -50,8 +50,8 @@ class ServerHelpers {
                             this.setSettings(o);
                         }.bind(this));
                     }
-                    catch {
-                        console.error(`Ошибки при загрузке настроек ${fn}\n${body}`);
+                    catch (e) {
+                        console.error(`Ошибки при загрузке настроек ${fn}`);
                     }
                 }
             }
