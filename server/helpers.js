@@ -45,17 +45,13 @@ class ServerHelpers {
                     }.bind(this));
                 }
                 catch {
-                    try {
-                        (new Function('settings', body.replace('\n', '')))(function (o) {
-                            this.setSettings(o);
-                        }.bind(this));
-                    }
-                    catch (e) {
-                        console.error(`Ошибки при загрузке настроек ${fn}`);
-                    }
+                    console.error(`Ошибки при загрузке настроек ${fn}`);
                 }
             }
-
+            for (let fn of this.getPrjFiles(/solution.info$/i, dirname)) {
+                let body = fs.readFileSync(fn, { encoding: 'utf8' });
+                this.settings.solution = body;
+            }
         }
         return this.settings || {};
     }
