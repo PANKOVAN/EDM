@@ -142,6 +142,7 @@ class EDMObj {
     _setRefValue(name, rname, type, mtype, value) {
         if (value === undefined || value === null) {
             delete this._values_[name];
+            if (this._edm_) this._edm_.addUpdates(this, name, null);
         }
         else if (typeof value == 'object') {
 
@@ -233,6 +234,9 @@ class EDMObj {
             this._setValue(name, value);
         }
     }
+    delete() {
+        this._edm_.removeObj(this);
+    }
 
 
     /**
@@ -309,6 +313,7 @@ class EDMObj {
                             label: def.label || _def._label,
                             type: def.type || _def._type,
                             len: def.len || _def._len,
+                            notnull: def.notnull || _def._notnull,
                             ptype: def.ptype || _def._ptype,
                             params: def.params,
                             filter: def.filter,
@@ -541,6 +546,20 @@ class EDMData {
         return obj;
     }
 
+    /**
+     * Создает новый объект с назначением ему нового id для этого 
+     * @param {*} type 
+     * @param {*} values 
+     */
+    createObj(type, values) {
+        if (this._onCreate) {
+            return this._onCreate(...arguments)
+        }
+        else {
+            throw new Error('Обработчик onCreate не реализован')
+        }
+    }
+
 
     /**
      * Сохраняет объект данных в EDMData
@@ -684,6 +703,12 @@ class EDMData {
     detachOnAfterUpdates(func) {
         this._onAfterUpdates = undefined;
     }
+    attachOnCreate(func) {
+        this._onCreate = func;
+    }
+    detachOnCreate(func) {
+        this._onCreate = undefined;
+    }
 
     addOperation(obj, operation) {
 
@@ -717,7 +742,7 @@ class EDMData {
         if (!this.updates[type]) this.updates[type] = {};
         let updates = this.updates[type][id];
         if (!updates) this.updates[type][id] = updates = {};
-        if (updates[name] != value) {
+        if (!updates[name] || updates[name] != value) {
             updates[name] = value;
             this.hasUpdates = true;
             if (this._onAfterUpdates) {

@@ -60,7 +60,7 @@ class DataController {
      * @returns {*}
      */
     hasMethod(method) {
-        return ['run', 'save', 'create', 'update', 'delete'].includes(method);
+        return ['run', 'save', 'create', 'nextId', 'update', 'delete'].includes(method);
     }
 
     async getConnection(mname, name, accessType) {
@@ -90,6 +90,11 @@ class DataController {
         let id = await connection.nextId(this.baseName);
         let obj = this.edmData.newObj(this.baseName, { id: id });
         return [obj];
+    }
+    async nextId() {
+        let connection = await this.getConnection(undefined, this.baseName, 'W');
+        let id = await connection.nextId(this.baseName);
+        return [id];
     }
     async insert() {
         let connection = await this.getConnection(undefined, this.baseName, 'W');
