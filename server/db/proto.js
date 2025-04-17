@@ -1404,6 +1404,7 @@ class SQLConnection {
         values = SQLConnection.valuesToArray(values);
         values.forEach(v => {
             if (v != '' && v != undefined) {
+                for (let c of '[],\\^$.,|?*+()') v = v.replaceAll(c, '\\' + c);
                 if (result != '') result += " or ";
                 result += ` cast(${fieldName} as varchar) ~* $${this.addNamedParam(params, v)}`;
             }
