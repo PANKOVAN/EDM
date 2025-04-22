@@ -1812,7 +1812,10 @@ class SQLConnection {
         return `$${params.length}::${this.getTypeString(col, true)}`;
     }
     getNullValue(fdef, value) {
-        if (typeof (value) != 'undefined' && value !== '') return value;
+        if (typeof (value) != 'undefined' && value !== '') {
+            if (fdef._type == 'date') value = this.func.dateParse(value);
+            return value;
+        }
         if (typeof (fdef._ptype) == 'undefined' || fdef._ptype == 'id' || fdef._ptype == 'props') {
             switch (fdef._type) {
                 case 'string':
