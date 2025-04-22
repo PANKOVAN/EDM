@@ -60,7 +60,7 @@ class DataController {
      * @returns {*}
      */
     hasMethod(method) {
-        return ['run', 'save', 'create', 'nextId', 'update', 'delete'].includes(method);
+        return ['run', 'save', 'create', 'nextId', 'insert', 'update', 'delete'].includes(method);
     }
 
     async getConnection(mname, name, accessType) {
