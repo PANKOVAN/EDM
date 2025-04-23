@@ -1413,6 +1413,46 @@ class SQLConnection {
         return result;
     }
     /**
+     * Фильтр softlike. Формирует условия отбора для "мягкого поска" по like. 
+     * Именованные параметры "накапливаются" в переданном списке именнованных параметров. 
+     * Если переданы пустые значения то условия не формируются.
+     * Внимание!!! Метод не должен вызываться напряму, а должен быть переопределен во всех классах потомках.
+     * @param {string} paramName имя параметрв
+     * @param {string} fieldName имя поля
+     * @param {any} values массив значений
+     * @param {any} params список именованных параметров
+     * @returns {string} сформированное условие
+     */
+    filter_softlike(paramName, fieldName, values, params) {
+        const en = 'eyopahkxcbm';
+        const ru = 'еуоранкхсвм';
+        let result = "";
+        if (typeof values == 'string') values = values.split(/[^A-Za-zА-Яа-я0-9_]/);
+        values = values
+            .map(v => {
+                for (let c of '[],\\^$.,|?*+()') v = v.replaceAll(c, '\\' + c);
+                return v;
+            })
+            .filter(v => !!v);
+        values = SQLConnection.valuesToArray(values);
+        values.forEach(v => {
+            if (v != '' && v != undefined) {
+                let v1 = '';
+                for (let i = 0; i < v.length; i++) {
+                    let c = v[i].toLowerCase();
+                    let j = en.indexOf(c);
+                    if (j < 0) j = ru.indexOf(c);
+                    if (j >= 0) c = '[' + en[j] + en[j].toUpperCase() + ru[j] + ru[j].toUpperCase() + ']';
+                    v1 += c;
+                }
+                if (result != '') result += " and ";
+                result += ` cast(${fieldName} as varchar) ~* $${this.addNamedParam(params, v1)}`;
+            }
+        }, this);
+        if (result.trim() != '') return `(${result})`;
+        return result;
+    }
+    /**
      * Фильтр in. Формирует условия отбора для условия in. 
      * Именованные параметры "накапливаются" в переданном списке именнованных параметров. 
      * Если переданы пустые значения то условия не формируются.
