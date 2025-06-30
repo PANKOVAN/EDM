@@ -942,7 +942,7 @@ class EDMData {
             }
             return _data;
         }
-        else if (typeof obj == 'object') {
+        else if (obj != null && typeof obj == 'object') {
             if (obj._type) {
                 this._prepareDataRefs(obj, /*[_obj],*/ _dic);
                 return this._prepareDataObj(obj)
@@ -950,7 +950,9 @@ class EDMData {
             else {
                 let _data = {};
                 for (let n in obj) {
-                    _data[n] = this._prepareObj(obj[n], _dic)
+                    if (!n.startsWith('_') || !n.endsWith('_')) {
+                        _data[n] = this._prepareObj(obj[n], _dic)
+                    }
                 }
                 return _data;
             }
