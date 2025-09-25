@@ -1141,8 +1141,20 @@ class EDMData {
             id = id.toString(32).padStart(8, 0);
             result = type + '/' + id.substr(0, 2) + '/' + id.substr(2, 2) + '/' + id.substr(4, 2) + '/$' + gid.toString();
         }
+
+
         for (let folder of folders) {
-            result += '/' + folder;
+            // В качестве параметра передали fileInfo
+            if (folder.file) {
+
+                result += '/' + folder.file;
+                if (folder.cash) {
+                    result += '?' + folder.cash;
+                }
+            }
+            else {
+                result += '/' + folder;
+            }
         }
         return result;
     }
