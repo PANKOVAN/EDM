@@ -8,6 +8,7 @@
     },
     "dependencies": {
         "bcrypt": "^5.1.1",
+        "edm": "github:pankovan/edm",
         "pg": "^8.14.1",
         "uuid": "^11.1.0"
     },

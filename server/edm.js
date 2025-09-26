@@ -1145,15 +1145,17 @@ class EDMData {
 
         for (let folder of folders) {
             // В качестве параметра передали fileInfo
-            if (folder.file) {
+            if (folder) {
+                if (folder.file) {
 
-                result += '/' + folder.file;
-                if (folder.cash) {
-                    result += '?' + folder.cash;
+                    result += '/' + folder.file;
+                    if (folder.cash) {
+                        result += '?' + folder.cash;
+                    }
                 }
-            }
-            else {
-                result += '/' + folder;
+                else {
+                    result += '/' + folder;
+                }
             }
         }
         return result;
