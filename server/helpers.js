@@ -179,7 +179,10 @@ class ServerHelpers {
      * @returns {object}
      */
     static prepareJson(source, edm, idMode) {
-        if (Array.isArray(source)) {
+        if (source.constructor.name == 'Date') {
+            return source;
+        }
+        else if (Array.isArray(source)) {
             let target = [];
             for (let i in source) {
                 let val = source[i];
