@@ -1180,7 +1180,7 @@ class EDMData {
      * @param {object} revision ревизия
      */
     getStoreUrlPath(obj, ...folders) {
-        let result = 'store' + '/' + this.getStorePath(obj, ...folders);
+        let result = '/store' + '/' + this.getStorePath(obj, ...folders);
         return result;
 
         //return '/' + result.replace(/\\/g, '/').replace(/\#/g, '%23');
