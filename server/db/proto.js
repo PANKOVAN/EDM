@@ -587,8 +587,14 @@ class SQLConnection {
         }
 
         let rows;
-        if (fields) rows = await this.select(`update ${this.getTableName(def._name)} set ${fields} where id=${this.getParamDef(def._name, 'id', params, id)} returning *`, params);
-        else rows = await this.select(`select * from ${this.getTableName(def._name)} where id=${this.getParamDef(def._name, 'id', params, id)} `, params);
+        if (fields) {
+            if (Array.isArray(id)) rows = await this.select(`update ${this.getTableName(def._name)} set ${fields} where id in (${id.join(',')}) returning *`, params);
+            else rows = await this.select(`update ${this.getTableName(def._name)} set ${fields} where id=${this.getParamDef(def._name, 'id', params, id)} returning *`, params);
+        }
+        else {
+            if (Array.isArray(id)) await this.select(`select * from ${this.getTableName(def._name)} where id in (${id.join(',')}) `, params);
+            elserows = await this.select(`select * from ${this.getTableName(def._name)} where id=${this.getParamDef(def._name, 'id', params, id)} `, params);
+        }
 
         if (rows.length == 0) {
             rows = await this.insert(name, values, readOnlyFields);
