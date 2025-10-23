@@ -593,7 +593,7 @@ class SQLConnection {
         }
         else {
             if (Array.isArray(id)) await this.select(`select * from ${this.getTableName(def._name)} where id in (${id.join(',')}) `, params);
-            elserows = await this.select(`select * from ${this.getTableName(def._name)} where id=${this.getParamDef(def._name, 'id', params, id)} `, params);
+            else rows = await this.select(`select * from ${this.getTableName(def._name)} where id=${this.getParamDef(def._name, 'id', params, id)} `, params);
         }
 
         if (rows.length == 0) {
