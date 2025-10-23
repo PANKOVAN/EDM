@@ -874,7 +874,10 @@ class ServerHelpers {
     static objToString(obj, preffix = '', suffix = '') {
         if (obj == undefined) return '';
         else if (obj.self) return preffix + obj.self.toString() + suffix;
-        else if (obj.getYear) return preffix + obj.toLocaleDateString('ru-ru') + suffix;
+        else if (obj.getYear) {
+            if (obj.getHours() != 0 || obj.getMinutes() != 0 || obj.getSeconds() != 0) return preffix + obj.toLocaleDateString('ru-ru') + ' ' + obj.toLocaleTimeString('ru-ru') + suffix;
+            else return preffix + obj.toLocaleDateString('ru-ru') + suffix;
+        }
         else if (obj) return preffix + obj.toString() + suffix;
         return '';
     }
