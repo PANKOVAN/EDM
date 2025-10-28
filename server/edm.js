@@ -959,6 +959,12 @@ class EDMData {
         }
         return obj;
     }
+
+    getClientSettings() {
+        let settings = this.user?.clientSettings;
+        if (!settings && this.helpers.getSettings) settings = this.helpers.getSettings()?.client;
+        return settings || {};
+    }
     /**
      * Проверка доступа
      * @param {string} group  групповое имя ресурса 
@@ -974,10 +980,14 @@ class EDMData {
         if (!Array.isArray(tokens)) tokens = (tokens || '').split('.');
         let stokens = tokens.join('.');
 
+        let readonly = !!this.getClientSettings().browserMode;
+
 
         if (tokens.length < 2) result = false;
         if (!this.user) result = true;
         else if (this.user.login == 'madmin') result = true;
+
+        if (readonly && !tokens.includes('view')) result = false;
 
         if (result == undefined) {
             while (tokens.length) {
