@@ -989,6 +989,7 @@ class EDMData {
 
         if (readonly && !tokens.includes('view')) result = false;
 
+
         if (result == undefined) {
             while (tokens.length) {
                 result = this.user.tokens[tokens.join('.')];
