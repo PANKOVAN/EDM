@@ -262,4 +262,4 @@ class ClientHelpers {
     //     }
 
 }
-module.exports = ClientHelpers
+export default ClientHelpers;

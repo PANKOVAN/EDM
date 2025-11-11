@@ -1,14 +1,10 @@
-'use strict'
-/**
- * Библиотека EDM. Хранилище.
- */
+import pathLib from 'path';
+import fs from 'fs';
+import helpers from '../helpers.js';
 
-const helpers = require('../helpers');
-const pathLib = require('path');
-const fs = require('fs');
 const fsp = fs.promises;
 
-module.exports = {
+export default {
     init: function (baseDir) {
         this.baseDir = baseDir;
     },

@@ -1,15 +1,14 @@
-'use strict'
-/**
- * Библиотека EDM. Базы данных sqlite. Синхронизация
- */
-const helpers = require('./helpers');
-const { models, classes } = require('./model');
+import helpers from '../helpers.js';
+import model from '../model.js';
+
+const { models, classes } = model;
 const settings = helpers.getSettings();
-module.exports = {
+
+const liteSync = {
     /**
      * Синхронизировать все
      */
-    sync: async function (model, dbcfg) {
+    async sync(model, dbcfg) {
         if (!model) {
             for (let n in models) {
                 let mmm = models[n];
@@ -21,7 +20,9 @@ module.exports = {
             return;
         }
         try {
-            let edm = require('./edm').getEDMData();
+            const edmModule = await import('../edm.js');
+            const edmApi = edmModule.default ?? edmModule;
+            let edm = edmApi.getEDMData();
             try {
                 if (typeof dbcfg != 'object') dbcfg = settings.db[dbcfg] || settings.models['*'];
                 let connection = await edm.getConnection(model, null, null, dbcfg);
@@ -46,11 +47,11 @@ module.exports = {
      * Получить описание данных о текущем состоянии модели по состоянию структур базы данных.
      * @param {object} model текущая модель
      */
-    getSyncInfo: async function (connection, model) {
+    async getSyncInfo(connection, model) {
         let syncInfo = {};
         return syncInfo;
     },
-    syncModel: async function (connection, model, syncInfo) {
+    async syncModel(connection, model, syncInfo) {
         console.debug(`SYNC MODEL ${model}`);
         // Запустить pre скрипты
         for (let t in classes) {
@@ -94,7 +95,7 @@ module.exports = {
             }
         }
     },
-    syncTest: function (curvalue, newvalue) {
+    syncTest(curvalue, newvalue) {
         let curvalue1 = (curvalue || '').replace(/\s+|"/g, '');
         let newvalue1 = (newvalue || '').replace(/\s+|"/g, '');
         if (curvalue1.toLowerCase() != newvalue1.toLowerCase()) {
@@ -102,7 +103,7 @@ module.exports = {
         }
         return false;
     },
-    syncTable: async function (connection, table, tableInfo, model) {
+    async syncTable(connection, table, tableInfo, model) {
         if (table && table._mtype == 'table' && (table._dbtype || 'sqlite') == 'sqlite') {
             console.debug(`SYNC TABLE ${table}`);
             // Проход по модели
@@ -149,11 +150,11 @@ module.exports = {
             }
         }
     },
-    getTypeString: function (connection, column, refMode = false) {
+    getTypeString(connection, column, refMode = false) {
         if (!column) return '';
         return connection.getTypeString(column, refMode);
     },
-    getDefString: function (connection, column, table, model) {
+    getDefString(connection, column, table, model) {
         if (!column) return '';
         if (!column._sqldefault && column._ptype != 'id' && column._type != 'guid' && !column._notnull) return '';
         let r = '';
@@ -215,13 +216,13 @@ module.exports = {
         }
         return r;
     },
-    getNullString: function (connection, column) {
+    getNullString(connection, column) {
         if (!column) return '';
         let r = 'NULL';
         if (column._notnull) r = 'NOT NULL';
         return r;
     },
-    getRefString: function (connection, column) {
+    getRefString(connection, column) {
         if (!column) return '';
         let r = '';
         if (column._ptype == 'ref') {
@@ -237,3 +238,5 @@ module.exports = {
         return r;
     }
 };
+
+export default liteSync;

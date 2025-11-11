@@ -1,12 +1,9 @@
-'use strict'
-/**
- * Библиотека EDM. Сервер. Хранение сессий в PostgreSQL
- */
-const helpers = require('../helpers');
-const settings = helpers.getSettings();
-const postgresql = require('../db/postgre');
+import helpers from '../helpers.js';
+import postgresql from '../db/postgre.js';
 
-module.exports = function (session) {
+const settings = helpers.getSettings();
+
+export default function (session) {
     const Store = session.Store;
     const noop = function () { };
 

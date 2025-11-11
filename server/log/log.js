@@ -1,5 +1,5 @@
-const $edm = require('../edm');
-const helpers = require('../helpers');
+import edmApi from '../edm.js';
+import helpers from '../helpers.js';
 
 class Log {
 
@@ -49,8 +49,8 @@ class Log {
                 }
                 try {
                     if (!this.connection) {
-                        let edm = $edm.getEDMData({ id: -100, login: 'madmin', name: 'madmin' });
-                        this.connection = await edm.getConnection('mlog');
+                        let edmData = edmApi.getEDMData({ id: -100, login: 'madmin', name: 'madmin' });
+                        this.connection = await edmData.getConnection('mlog');
                     }
                     let connection = this.connection;
                     connection.hideTrace = true;
@@ -168,4 +168,4 @@ class Log {
     }
 
 }
-module.exports = Log;
+export default Log;

@@ -1,5 +1,6 @@
-const helpers = require('./helpers');
-const path = require('path');
+import helpers from './helpers.js';
+import path from 'path';
+import { getEdmModule } from './model.js';
 
 /**
  * Контроллер данных. Используется с одной строны как поставщик данных на клиент, 
@@ -20,7 +21,7 @@ class DataController {
      * @param {object} res ответ
      */
     constructor(name, req, res) {
-        const edm = require('./edm');
+        const edm = getEdmModule();
         this.edmData = edm.getEDMData(req.user);
         this.params = helpers.prepareParams(req);
         this.baseName = path.basename(name, '.data');
@@ -125,10 +126,13 @@ class DataController {
  * Дополнительные классы
  * @module utils
  */
-module.exports = {
+const utils = {
     /**
      * Класс контроллер данных
      * @type DataController
      */
-    DataController: DataController
-}
+    DataController,
+};
+
+export { DataController };
+export default utils;

@@ -1,14 +1,13 @@
 
-'use strict'
+import path from 'path';
+import fs from 'fs';
+import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
 
-const path = require('path');
-const fs = require("fs");
-const fsp = fs.promises;
-const pathLib = require("path");
-const bcrypt = require('bcrypt');
-const uuid = require('uuid');
-const buffer = require('buffer');
-const { promises } = require('dns');
+const pathLib = path;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 /**
@@ -102,7 +101,7 @@ class ServerHelpers {
      * @returns {string}
      */
     static getUUID() {
-        return uuid();
+        return uuidv4();
     }
     /**
      * Подготавливает параметры переданные с клиента. Пытается привести строковые значения к числам
@@ -672,197 +671,14 @@ class ServerHelpers {
      * @param {string} dirname папка проекта
      * @returns {any}
      */
-    static getModule(name, dirname) {
+    static async getModule(name, dirname) {
         let files = this.getPrjFiles(name, dirname);
         if (!files.length) throw new Error(`Модуль ${name} не найден`);
         if (files.length > 1) throw new Error(`По имени ${name} найдено несколько модулей`);
-        let m = require(files[0]);
+        let m = await import('file:///' + files[0]);
         return m;
     }
 
-    /*
-        testNotUndefined(value, mess) {
-            let f = (value !== undefined && value !== null);
-            if (mess && !f) throw mess;
-            return f;
-        },
-        */
-    /*
-     * Возвращает nickname для заданной строки
-     * @param {*} name
-     * @param {*} len
-     */
-    /*
-    nick: function (name, len = 2) {
-        if (typeof name != 'string') name = "???";
-        if (name.length < 3) name += '???';
-        if (len == 1) return name[0].toUpperCase();
-        else if (len == 2) return name[0].toUpperCase() + name[1].toLowerCase();
-        else return name[0].toUpperCase() + name[1].toLowerCase() + name[2].toLowerCase();
-    },
-    */
-    /*
-    softString: function (s, keepSpace) {
-        if (typeof s == 'object') s = s._value_;
-        s = (s || '').toString();
-        s = s.toUpperCase(s);
-        s = s.replace(/У/g, 'Y');
-        s = s.replace(/К/g, 'K');
-        s = s.replace(/Е/g, 'E');
-        s = s.replace(/Н/g, 'H');
-        s = s.replace(/Х/g, 'X');
-        s = s.replace(/В/g, 'B');
-        s = s.replace(/А/g, 'A');
-        s = s.replace(/Р/g, 'P');
-        s = s.replace(/О/g, 'O');
-        s = s.replace(/С/g, 'C');
-        s = s.replace(/М/g, 'M');
-        s = s.replace(/Т/g, 'T');
-        s = s.replace(/,/g, '.');
-        if (!keepSpace) s = s.replace(/\s+/g, ' ');
-        return s;
-    },
-    */
-    /*
-     * Работа с консолью
-     */
-    //TODO ликвидировать консоль
-    // console: {
-    //     isTrace: false,
-    //     isFileTrace: false,
-    //     _logger: false,
-    //     /**
-    //      * Подготовка фалов лога
-    //      */
-    //     async prepareConsole() {
-    //         try {
-    //             if (this.isFileTrace && !this._logger) {
-    //                 let pg = require("./postgresql");
-    //                 this._logger = await pg.getLogger();
-    //             }
-    //             this.server('Запуск сервера', 'SYSTEM');
-    //         }
-    //         catch (e) {
-    //             console.error(`| SYSTEM | error | ${e.message} |`);
-    //         }
-    //     },
-    //     /**
-    //      * console.log
-    //      * @param {string} mess - текст сообщения,
-    //      * @param {string} type - тип сообщения,
-    //      * @param {string} user - логин пользователя
-    //      */
-    //     async log(user, type, mess, isTrace = false) {
-    //         try {
-    //             if (!isTrace || this.isTrace) {
-    //                 mess = mess || '';
-    //                 type = type || '';
-    //                 user = user || '';
-    //                 // if (this._logger) {
-    //                 //     await this._logger.log(user, type, mess);
-    //                 // }
-    //                 // else {
-    //                 switch (type) {
-    //                     case "debug": {
-    //                         console.debug(`| ${user} | ${type} | ${mess} |`);
-    //                         break;
-    //                     }
-    //                     case "error": {
-    //                         console.error(`| ${user} | ${type} | ${mess} |`);
-    //                         break;
-    //                     }
-    //                     case "warning": {
-    //                         console.warn(`| ${user} | ${type} | ${mess} |`);
-    //                         break;
-    //                     }
-    //                     case "info": {
-    //                         console.info(`| ${user} | ${type} | ${mess} |`);
-    //                         break;
-    //                     }
-    //                     default: {
-    //                         console.debug(`| ${user} | ${type} | ${mess} |`);
-    //                     }
-    //                 }
-    //                 //}
-    //             }
-    //         }
-    //         catch (e) {
-    //             console.error(`| SYSTEM | error | ${e.message} |`);
-    //         }
-    //     },
-    //     /*
-    //      * Сообщение для отладки
-    //      * @param {string} mess - текст сообщения
-    //      * @param {string} user - логин пользователя
-    //      */
-    //     debug: function (mess, user) {
-    //         this.log(user, 'debug', mess);
-    //     },
-    //     /**
-    //      * Информационное сообщение
-    //      * @param {string} mess  - текст сообщения
-    //      */
-    //     info: function (mess, user) {
-    //         this.log(user, 'info', mess);
-    //     },
-    //     /**
-    //      * Предупреждение
-    //      * @param {string} mess  - текст сообщения
-    //      */
-    //     warning: function (mess, user) {
-    //         this.log(user, 'warning', mess);
-    //     },
-    //     /**
-    //      * Ошибка
-    //      * @param {string} mess  - текст сообщения
-    //      */
-    //     error: function (mess, user) {
-    //         if (typeof mess == 'object') {
-    //             let e = mess;
-    //             mess = e.message;
-    //             if (e.stack) mess += '\n\n' + e.stack;
-    //         }
-    //         this.log(user, 'error', mess);
-    //     },
-    //     /**
-    //      * серверные сообщения
-    //      * @param {string} mess - текст сообщения.
-    //      */
-    //     server: async function (mess) {
-    //         this.log('SYSTEM', 'server', mess);
-    //     },
-    //     /**
-    //      * Хранилище
-    //      * @param {string} mess
-    //      */
-    //     store: function (mess, user) {
-    //         this.log(user, 'store', mess, true);
-    //     },
-    //     /**
-    //      * БД
-    //      * @param {string} mess
-    //      */
-    //     sql: function (mess, user) {
-    //         this.log(user, 'sql', mess, true);
-    //     },
-    //     /**
-    //      * HTTP
-    //      * @param {string} mess
-    //      */
-    //     http: async function (mess, user) {
-    //         this.log(user, 'http', mess, true);
-    //     },
-    // },
-
-    /*
-    ljoin: function () {
-        if (arguments.length == 1) return pathLib.join(arguments[0]).replace(/\\/g, '/');
-        if (arguments.length == 2) return pathLib.join(arguments[0], arguments[1]).replace(/\\/g, '/');
-        if (arguments.length == 3) return pathLib.join(arguments[0], arguments[1], arguments[3]).replace(/\\/g, '/');
-        if (arguments.length == 4) return pathLib.join(arguments[0], arguments[1], arguments[3], arguments[4]).replace(/\\/g, '/');
-        throw "func.ljoin - максимальное количество параметров - 4";
-    },
-    */
 
     /**
      * Возвращает объект как строку, если не пусто, то добавляется преффикс и суффикс 
@@ -882,69 +698,6 @@ class ServerHelpers {
         return '';
     }
 
-    /*
-    fspStat: async function (path) {
-        let stat = null;
-        try {
-            stat = await fsp.stat(path);
-        }
-        catch {
-        }
-        return stat;
-    },
-    fspIsDirectory: async function (path) {
-        let stat = await this.fspStat(path);
-        return stat && stat.isDirectory();
-    },
-    fspIsFile: async function (path) {
-        let stat = await this.fspStat(path);
-        return stat && stat.isFile();
-    },
-    fspCP: async function (fromPath, toPath) {
-        let stat = await this.fspStat(fromPath);
-        if (!stat) throw `Не найден путь ${fromPath}`;
-        if (stat.isDirectory()) {
-            let statTo = await this.fspStat(toPath);
-            if (statTo && statTo.isFile()) {
-                await fsp.rm(toPath);
-                statTo = null;
-            }
-            if (!statTo) {
-                await fsp.mkdir(toPath, { recursive: true })
-            }
-            let lst = (await fsp.readdir(fromPath)) || [];
-            for (let name of lst) {
-                if (name == '.' || name == '..') continue;
-                await this.fspCP(pathLib.join(fromPath, name), pathLib.join(toPath, name));
-            }
-        }
-        if (stat.isFile()) {
-            let toDir = pathLib.dirname(toPath);
-            let statTo = await this.fspStat(toDir);
-            if (statTo && statTo.isFile()) {
-                await fsp.rm(toDir);
-                statTo = null;
-            }
-            if (statTo && !statTo.isDirectory()) {
-                await fsp.mkdir(toDir, { recursive: true })
-            }
-            let fromFile = await fsp.open(fromPath, 'r');
-            let toFile = await fsp.open(toPath, 'w');
-            try {
-                const buf = buffer.Buffer.alloc(4100);
-                while (true) {
-                    let obj = await fromFile.read(buf, 0, 4096);
-                    if (!obj.bytesRead) break;
-                    await toFile.write(buf, 0, obj.bytesRead);
-                }
-            }
-            finally {
-                if (fromFile) fromFile.close();
-                if (toFile) toFile.close();
-            }
-        }
-    },
-*/
 
     /**
      * Очищает дату от времени
@@ -1201,5 +954,5 @@ class ServerHelpers {
     }
 }
 
-module.exports = ServerHelpers;
+export default ServerHelpers;
 

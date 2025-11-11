@@ -1,14 +1,7 @@
-'use strict'
+import Log from '../log/log.js';
+import helpers from '../helpers.js';
 
-
-const log = require('../log/log').get()
-
-//TODO При записи в базу по пустой ссылке на конфигурацию нужно делать null а сейчас или '' или null
-//TODO Автогенерация SQL для логических полей
-//TODO Если в поиск где должен сгенериться like в качестве параметра передать строку с незакрытой скобкой то все плохо 
-
-
-const helpers = require('../helpers');
+const log = Log.get();
 
 
 class FieldDefList extends Array {
@@ -2203,12 +2196,4 @@ class SQLLogger {
 */
 
 
-/**
- * Соединение(контроллер) базы данных
- * @module proto
- */
-module.exports = {
-    /** Класс {@link SQLConnection} */
-    SQLConnection: SQLConnection
-    //SQLLogger: SQLLogger
-};
+export { SQLConnection };

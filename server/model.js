@@ -1,6 +1,23 @@
-'use strict'
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import func from './helpers.js';
 
-const func = require('./helpers');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let edmModule;
+
+export function registerEdmModule(module) {
+    edmModule = module;
+}
+
+export function getEdmModule() {
+    if (!edmModule) {
+        throw new Error('EDM module is not registered');
+    }
+    return edmModule;
+}
 
 /**
  * Прототип всех объектов модели (классы, таблицы, конфигурации)
@@ -92,7 +109,19 @@ class Model extends ModelObj {
     get db() {
         let db = func.getSettings()._dbtype_ || this._basetype;
         if (db) {
-            if (!this._db_) this._db_ = require(`./${db}`)
+            return this._db_;
+        }
+        return null;
+    }
+
+    async loadDb() {
+        let db = func.getSettings()._dbtype_ || this._basetype;
+        if (db) {
+            if (!this._db_) {
+                const modulePath = db.endsWith('.js') ? `./${db}` : `./${db}.js`;
+                const mod = await import(modulePath);
+                this._db_ = mod.default ?? mod;
+            }
             return this._db_;
         }
         return null;
@@ -676,7 +705,7 @@ const modelMethods = {
 
     data: function (name, configuration) {
         let index = 0;
-        let edm = require('./edm');
+        const edm = getEdmModule();
         let edmData = edm.getEDMData();
         if (edmData.classes[name]?._mtype == 'cfg') {
 
@@ -714,7 +743,7 @@ const modelMethods = {
  * Модель базы данных
  * @module model
  */
-module.exports = {
+const model = {
     /**
      * Список загруженных моделей
      */
@@ -741,8 +770,7 @@ module.exports = {
     },
 
     _init: function (dirname, dataMode) {
-        const edm = require('./edm');
-        const fs = require('fs');
+        const edm = getEdmModule();
 
         // Подготовить методы к вызову
         let settings = func.getSettings(dirname);
@@ -873,7 +901,6 @@ module.exports = {
         }
     },
     initTables: async function (dirname) {
-        const fs = require('fs');
 
         // Подготовить методы к вызову
         let settings = func.getSettings();
@@ -913,7 +940,7 @@ module.exports = {
             console.debug(`INIT TABLE "${table._mname}"."${table._name}"`)
             let settings = func.getSettings();
             let dbcfg = settings.models['*'];
-            let edm = require('./edm');
+            const edm = getEdmModule();
             let edmData = edm.getEDMData();
             let connection = await edmData.getConnection(table._mname, null, null, dbcfg);
 
@@ -931,3 +958,6 @@ module.exports = {
     },
 
 };
+
+export { modelMethods };
+export default model;

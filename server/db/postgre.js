@@ -1,13 +1,10 @@
-'use strict'
-/**
- * Библиотека EDM. Базы данных postgresql.
- */
+import pg from 'pg';
+import helpers from '../helpers.js';
+import { SQLConnection } from './proto.js';
 
-const helpers = require('../helpers');
 const settings = helpers.getSettings();
-const sqlabstract = require('./proto');
 
-class PostgreSQLConnection extends sqlabstract.SQLConnection {
+class PostgreSQLConnection extends SQLConnection {
     constructor(db, edm) {
         super(db, edm);
         this.type = 'postgresql';
@@ -77,24 +74,24 @@ class PostgreSQLLogger extends sqlabstract.SQLLogger {
 }
 */
 
-module.exports = {
+const driver = {
     /**
      * Инициализация
      */
-    sync: async function (model, passing) {
-        let pgsync = require('./postgre.sync.js');
+    async sync(model, passing) {
+        const pgsyncModule = await import('./postgre.sync.js');
+        const pgsync = pgsyncModule.default ?? pgsyncModule;
         await pgsync.sync(model, undefined, passing);
     },
 
     /**
      * Получить пул соединений
      */
-    getPool: function (dbcfg) {
+    getPool(dbcfg) {
         if (typeof dbcfg != 'object') dbcfg = settings.db[dbcfg] || settings.db[settings.models['*']];
         if (dbcfg) {
             if (typeof (dbcfg._pool_) == 'undefined') {
-                let Pool = require('pg').Pool;
-                dbcfg._pool_ = new Pool({
+                dbcfg._pool_ = new pg.Pool({
                     user: dbcfg.dbuser || 'postgres',
                     host: dbcfg.dbhost || 'localhost',
                     database: dbcfg.dbname,
@@ -109,7 +106,7 @@ module.exports = {
         throw 'Описатель настроек для postgre не найден';
     },
 
-    getConnection: async function (edm, dbcfg) {
+    async getConnection(edm, dbcfg) {
         let connection = new PostgreSQLConnection(this, edm);
         connection.pool = this.getPool(dbcfg);
         connection.client = await this.getPool(dbcfg).connect();
@@ -126,3 +123,6 @@ module.exports = {
     }
     */
 };
+
+export { PostgreSQLConnection };
+export default driver;

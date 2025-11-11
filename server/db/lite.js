@@ -1,14 +1,12 @@
-'use strict'
-/**
- * Библиотека EDM. Базы данных sqlite.
- */
+import pathLib from 'path';
+import sqlite3pkg from 'sqlite3';
+import helpers from '../helpers.js';
+import { SQLConnection } from './proto.js';
+import Log from '../log/log.js';
 
-const helpers = require('./helpers');
 const settings = helpers.getSettings();
-const sqlite3 = require('sqlite3').verbose();
-const sqlabstract = require('./sqlabstract.js');
-const pathLib = require('path');
-const log = require('./log/log').get()
+const sqlite3 = sqlite3pkg.verbose();
+const log = Log.get();
 
 sqlite3.as_open = function (path, mode) {
     return new Promise(function (resolve, reject) {
@@ -56,7 +54,7 @@ sqlite3.as_close = function (client) {
     });
 };
 
-class SqliteConnection extends sqlabstract.SQLConnection {
+class SqliteConnection extends SQLConnection {
     constructor(db, edm) {
         super(db, edm);
         this.type = 'sqlite';
@@ -519,21 +517,18 @@ class SqliteConnection extends sqlabstract.SQLConnection {
     }
 }
 
-module.exports = {
-    edm: require('./edm'),
-    helpers: require('./helpers'),
-    cfg: require('./cfg'),
-
+const driver = {
     /**
      * Инициализация
      */
-    init: async function (model) {
+    async init(model) {
         if (settings._sync_) {
-            let sqlitesync = require('./lite.sync.js');
+            const sqlitesyncModule = await import('./lite.sync.js');
+            const sqlitesync = sqlitesyncModule.default ?? sqlitesyncModule;
             await sqlitesync.sync(model);
         }
     },
-    getConnection: async function (edm, dbcfg) {
+    async getConnection(edm, dbcfg) {
         if (typeof dbcfg != 'object') dbcfg = settings.db[dbcfg] || settings.models['*'];
         let connection = new SqliteConnection(this, edm);
         let dbname = dbcfg.dbname || pathLib.join(settings._storedir_, 'mbuilder.export.db');
@@ -544,10 +539,14 @@ module.exports = {
         await sqlite3.as_get(connection.client, "PRAGMA temp_store = MEMORY"); // временные таблицы в памяти
         return connection;
     },
-    freeConnection: async function (connection) {
+    async freeConnection(connection) {
         if (connection && connection.client) {
             await sqlite3.as_close(connection.client);
             connection.client = undefined;
         }
     }
 };
+
+export { SqliteConnection };
+export default driver;
+

@@ -1,16 +1,19 @@
-'use strict'
+import utils from './utils.js';
+import helpers from './helpers.js';
+import client from './client.js';
+import model, { registerEdmModule } from './model.js';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import storeModule from './db/store.js';
 
-const utils = require('./utils');
-const helpers = require('./helpers');
-const client = require('./client');
-const model = require('./model');
-
-const path = require('path');
-const fs = require('fs');
 const fsp = fs.promises;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const isNodeRuntime = typeof process !== 'undefined' && !!process.versions?.node;
 
 
-const edm = {
+const edmRuntime = {
     models: model.models,
     classes: model.classes,
     cfg: model.cfg,
@@ -356,21 +359,23 @@ class EDMData {
      */
     constructor(currentUser) {
         EDMData.id++;
+        let _edm = {};
+        if (typeof edmRuntime != 'undefined') _edm = edmRuntime;
+        if (typeof edm != 'undefined') _edm = edm;
         this.id = EDMData.id;
-        this.models = edm.models;
-        this.classes = edm.classes;
+        this.models = _edm.models;
+        this.classes = _edm.classes;
         this.connections = [];
-        this.cfg = edm.cfg;
-        this.helpers = edm.helpers;
-        this.utils = edm.utils;
+        this.cfg = _edm.cfg;
+        this.helpers = _edm.helpers;
+        this.utils = _edm.utils;
 
         this.dic = {};
 
         if (currentUser) this.user = this.newObj('user', currentUser || { id: -100 }, false, true);
-        try {
-            if (!edm?.isClient) this.store = require('./db/store');
+        if (typeof isNodeRuntime != 'undefined') {
+            this.store = storeModule;
         }
-        catch { }
     }
 
 
@@ -410,7 +415,11 @@ class EDMData {
             dbcfg = settings.db[dbname] || {};
         }
         if (!dbcfg.require) throw new Error("Не задан драйвер соединения");
-        let db = require(`./db/${dbcfg.require}`)
+        const dbModulePath = dbcfg.require.endsWith('.js')
+            ? `./db/${dbcfg.require}`
+            : `./db/${dbcfg.require}.js`;
+        const dbModule = await import(dbModulePath);
+        const db = dbModule.default ?? dbModule;
         let connection = await db.getConnection(this, dbcfg);
         this.connections.push(connection);
         //console.error('connections', connection.pool.totalCount, connection.pool.idleCount, connection.pool.waitingCount);
@@ -1325,7 +1334,7 @@ class EDMData {
  * Ядро EDM
  * @module edm
  */
-module.exports = {
+const edmApi = {
 
     /** Класс {@link EDMObj} */
     EDMObj: EDMObj,
@@ -1391,8 +1400,12 @@ module.exports = {
                 try {
                     let dbname = settings.models[model._mname] || settings.models['*'];
                     let dbcfg = settings.db[dbname];
-                    let db = require(`./db/${dbcfg.require}`)
-                    if (db) await db.sync(model, passing);
+                    const modulePath = dbcfg.require.endsWith('.js')
+                        ? `./db/${dbcfg.require}`
+                        : `./db/${dbcfg.require}.js`;
+                    const dbModule = await import(modulePath);
+                    const db = dbModule.default ?? dbModule;
+                    if (db?.sync) await db.sync(model, passing);
                 }
                 catch (e) {
                     console.error(`Ошибки при инициализации модели ${n}: ${e} \n${e.stack}`);
@@ -1419,17 +1432,16 @@ module.exports = {
      * @param {string} dirname 
      */
     sync: async function (dirname = '') {
-        // func.getSettings(dirname);
-        //  INIT EDM
-        helpers.getSettings(dirname)
-        require('./model').init(dirname);
-        this.initModel(dirname).then(() => {
-            require('./model').initTables(dirname).then(() => {
-                console.debug("READY!!!.......................................");
-            });
-        }).catch((err => {
-            console.error(err)
-        }));
+        helpers.getSettings(dirname);
+        await model.init(dirname);
+        await this.initModel();
+        await model.initTables(dirname);
+        console.debug("READY!!!.......................................");
     }
 
 };
+
+registerEdmModule(edmApi);
+
+export { EDMObj, EDMData, edmRuntime };
+export default edmApi;

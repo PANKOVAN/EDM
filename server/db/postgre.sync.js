@@ -1,21 +1,14 @@
-'use strict'
-/**
- * Библиотека EDM. Базы данных postgresql. Синхронизация
- */
-//TODO посметреть умолчания для NOT NULL
-//TODO при генерации констроинтов их имена переводятся на мпленький регист наверное надо брать в скобки
+import helpers from '../helpers.js';
+import model from '../model.js';
 
-//TODO зачем в лог 2 поля upd и del????
-//TODO в log добавить индекс по id
-const helpers = require('../helpers');
-const { models, classes } = require('../model');
+const { models, classes } = model;
 const settings = helpers.getSettings();
 
-module.exports = {
+const syncModule = {
     /**
      * Синхронизировать все
      */
-    sync: async function (model, dbcfg, passing) {
+    async sync(model, dbcfg, passing) {
         console.debug(`SYNC START ${model} (${passing})`);
         if (!model) {
             for (let n in models) {
@@ -28,7 +21,9 @@ module.exports = {
             return;
         }
         try {
-            let edm = require('../edm').getEDMData();
+            const edmModule = await import('../edm.js');
+            const edmApi = edmModule.default ?? edmModule;
+            let edm = edmApi.getEDMData();
             try {
                 if (typeof dbcfg != 'object') dbcfg = settings.db[dbcfg] || settings.models['*'];
                 let dbsettings = settings.db[dbcfg];
@@ -74,7 +69,7 @@ module.exports = {
      * Получить описание данных о текущем состоянии модели по состоянию структур базы данных. Модель соответствует схеме в postgre
      * @param {object} model текущая модель
      */
-    getSyncInfo: async function (connection, model) {
+    async getSyncInfo(connection, model) {
 
         let syncInfo = {};
         // Список таблиц 
@@ -151,13 +146,13 @@ module.exports = {
         return syncInfo;
 
     },
-    testExistsTable: async function (connection, mname, name) {
+    async testExistsTable(connection, mname, name) {
         return await connection.query(`select 1 from information_schema.tables where table_schema=$schemaname and table_name=$tablename`, { schemaname: mname, tablename: name });
     },
-    testExistsColumn: async function (connection, mname, name, cname) {
+    async testExistsColumn(connection, mname, name, cname) {
         return await connection.query(`select 1 from information_schema.columns where table_schema=$schemaname and table_name=$tablename and column_name=$columnname`, { schemaname: mname, tablename: name, column_name: cname });
     },
-    syncModel: async function (connection, model, syncInfo, passing) {
+    async syncModel(connection, model, syncInfo, passing) {
         console.debug(`SYNC MODEL ${model}`);
         // Добавить схему
         if (passing == 1) {
@@ -240,7 +235,7 @@ module.exports = {
             }
         }
     },
-    syncModelPre: async function (connection, model) {
+    async syncModelPre(connection, model) {
         console.debug(`SYNC PRE ${model}`);
         // Запустить pre скрипты
         for (let t in classes) {
@@ -262,7 +257,7 @@ module.exports = {
             }
         }
     },
-    syncModelPost: async function (connection, model) {
+    async syncModelPost(connection, model) {
         console.debug(`SYNC POST ${model}`);
         // Запустить post скрипты
         for (let t in classes) {
@@ -284,7 +279,7 @@ module.exports = {
             }
         }
     },
-    syncTest: function (curvalue, newvalue) {
+    syncTest(curvalue, newvalue) {
         let curvalue1 = (curvalue || '').replace(/\s+|"/g, '');
         let newvalue1 = (newvalue || '').replace(/\s+|"/g, '');
         if (curvalue1.toLowerCase() != newvalue1.toLowerCase()) {
@@ -292,7 +287,7 @@ module.exports = {
         }
         return false;
     },
-    syncType: async function (connection, table, tableInfo, model, tableName, passing) {
+    async syncType(connection, table, tableInfo, model, tableName, passing) {
         if (table && table._mtype == 'type' && (table._dbtype || 'postgresql') == 'postgresql') {
             console.debug(`SYNC TYPE ${table}(${passing})`);
             // Проход по модели
@@ -335,7 +330,7 @@ module.exports = {
             }
         }
     },
-    syncTable: async function (connection, table, tableInfo, model, tableName, passing, isLogTable = false) {
+    async syncTable(connection, table, tableInfo, model, tableName, passing, isLogTable = false) {
         if (table && table._mtype == 'table' && (table._dbtype || 'postgresql') == 'postgresql') {
             //let isLogTable = tableName && tableName.startsWith('_log_');
             console.debug(`SYNC TABLE ${table}(${passing})`);
@@ -543,11 +538,11 @@ module.exports = {
             }
         }
     },
-    getTypeString: function (connection, column, refMode = false) {
+    getTypeString(connection, column, refMode = false) {
         if (!column) return '';
         return connection.getTypeString(column, refMode);
     },
-    getDefString: function (connection, column, table, model, tableName) {
+    getDefString(connection, column, table, model, tableName) {
         if (!column) return '';
         if (!column._sqldefault && column._ptype != 'id' && column._type != 'guid' && !column._notnull) return '';
         let r = '';
@@ -614,13 +609,13 @@ module.exports = {
         //}
         return r;
     },
-    getNullString: function (connection, column) {
+    getNullString(connection, column) {
         if (!column) return '';
         let r = 'NULL';
         if (column._notnull) r = 'NOT NULL';
         return r;
     },
-    getRefString: function (connection, column, table) {
+    getRefString(connection, column, table) {
         if (!column) return '';
         let r = '';
         if (column._ptype == 'ref') {
@@ -639,7 +634,7 @@ module.exports = {
         }
         return r;
     },
-    getUniqueString: function (connection, column) {
+    getUniqueString(connection, column) {
         if (!column) return '';
         let r = '';
         if (column._unique) {
@@ -654,3 +649,5 @@ module.exports = {
         return s.replace(/'/g, "''");
     },
 };
+
+export default syncModule;
